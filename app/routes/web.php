@@ -1,8 +1,8 @@
 <?php
 
+use App\Http\Controllers\UserController;
 use Illuminate\Support\Facades\Route;
 
-Route::view('/', 'index')->name('index');
-Route::view('/about', 'about')->name('about');
-Route::view('/services/example', 'services')->name('services');
-Route::view('/contact', 'contact')->name('contact');
+
+Route::get('/users', [UserController::class, 'index'])->name('user.index');
+Route::get('/users/create',[UserController::class, 'create'])->name('user.create');
