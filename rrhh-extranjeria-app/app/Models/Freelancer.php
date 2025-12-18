@@ -20,6 +20,7 @@ class Freelancer extends Model
 
         // FILLABLE
     protected $fillable = [
+        'employer_id',
         'first_name',
         'last_name',
         'niss',

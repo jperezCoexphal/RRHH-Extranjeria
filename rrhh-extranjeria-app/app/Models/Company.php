@@ -21,9 +21,10 @@ class Company extends Model
 
         // FILLABLE
     protected $fillable = [
+        'employer_id',
         'representative_name',
         'representative_title',
-        'representative_dni',
+        'representantive_identity_number',
     ];
 
     // RELATIONSHIPS

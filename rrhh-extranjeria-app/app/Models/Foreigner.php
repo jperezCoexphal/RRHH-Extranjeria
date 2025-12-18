@@ -23,6 +23,7 @@ class Foreigner extends Model
         'last_name',
         'passport',
         'nie',
+        'niss',
         'gender',
         'birthdate',
         'nationality',

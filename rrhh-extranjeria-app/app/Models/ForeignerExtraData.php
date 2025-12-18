@@ -10,17 +10,19 @@ class ForeignerExtraData extends Model
     /*-----------------------------------------------------------------------------------*/
 
         // CONFIG
+    protected $table = 'foreigners_extra_data';
     protected $primaryKey = 'foreigner_id';
     public $incrementing = false;
     public $timestamps = false;
 
         // FILLABLE
     protected $fillable = [
+        'foreigner_id',
         'father_name',
         'mother_name',
         'legal_guardian_name',
         'legal_guardian_identity_number',
-        'legal_guadian_title',
+        'guardianship_title',
         'phone',
         'email',
     ];
