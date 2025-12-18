@@ -1,9 +1,0 @@
-{
-  "permissions": {
-    "allow": [
-      "Bash(dir /s \"C:\\Users\\J3thr0\\Desktop\\Projects\\RRHH-Extranjeria\\rrhh-extranjeria-app\")",
-      "Bash(composer require:*)",
-      "Bash(mkdir:*)"
-    ]
-  }
-}
