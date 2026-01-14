@@ -48,10 +48,13 @@ class EloquentInmigrationFileRepository implements InmigrationFileRepository
                 'employer.company',
                 'employer.freelancer',
                 'foreigner.extraData',
+                'foreigner.nationality',
+                'foreigner.birthCountry',
                 'editor',
                 'requirements',
                 'workAddress.municipality',
                 'workAddress.province',
+                'workAddress.country',
             ])
             ->find($id);
     }

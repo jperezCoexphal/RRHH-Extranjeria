@@ -357,7 +357,7 @@ class extends Component {
                             <p class="mb-2 fw-bold"><code class="fs-5">{{ $file->file_code }}</code></p>
                         </div>
                         <div class="col-md-4">
-                            <label class="form-label small text-muted mb-0">Campana</label>
+                            <label class="form-label small text-muted mb-0">Campaña</label>
                             <p class="mb-2"><span class="badge bg-primary">{{ $file->campaign }}</span></p>
                         </div>
                         <div class="col-md-4">
@@ -947,10 +947,23 @@ class extends Component {
                 </div>
                 <div class="card-body">
                     <div class="d-grid gap-2">
-                        <a href="{{ route('documents.generate', $file->id) }}" class="btn btn-outline-primary">
-                            <i class="bi bi-file-earmark-pdf me-1"></i>
-                            Generar Documentos
-                        </a>
+                        @if($file->employer_id && $file->foreigner_id)
+                            <a href="{{ route('documents.generate', $file->id) }}" class="btn btn-primary">
+                                <i class="bi bi-file-earmark-zip me-1"></i>
+                                Generar Pack Documentos
+                            </a>
+                            <a href="{{ route('documents.generate-ex', $file->id) }}" class="btn btn-outline-primary">
+                                <i class="bi bi-file-earmark-pdf me-1"></i>
+                                Solo Modelo EX
+                            </a>
+                        @else
+                            <button class="btn btn-secondary" disabled>
+                                <i class="bi bi-file-earmark-pdf me-1"></i>
+                                Generar Documentos
+                            </button>
+                            <small class="text-muted text-center">Falta empleador o trabajador</small>
+                        @endif
+                        <hr class="my-2">
                         <a href="{{ route('checklist.index', $file->id) }}" class="btn btn-outline-info">
                             <i class="bi bi-list-check me-1"></i>
                             Ver Checklist

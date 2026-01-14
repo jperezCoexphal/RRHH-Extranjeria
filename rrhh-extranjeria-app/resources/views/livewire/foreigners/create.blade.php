@@ -312,7 +312,7 @@ class extends Component {
                     <div class="card-header">
                         <h6 class="m-0">
                             <i class="bi bi-geo-alt me-2"></i>
-                            Direccion en Espana
+                            Direccion en España
                         </h6>
                     </div>
                     <div class="card-body">

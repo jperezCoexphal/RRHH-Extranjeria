@@ -48,24 +48,16 @@
         <hr class="sidebar-divider">
         <div class="sidebar-heading">Documentos</div>
 
-        {{-- Generacion de Documentos --}}
-        <li class="nav-item">
-            <a class="nav-link {{ request()->routeIs('documents.*') ? 'active' : '' }}" href="{{ route('documents.index') }}" wire:navigate>
-                <i class="bi bi-file-earmark-pdf"></i>
-                <span class="nav-link-text">Documentos</span>
-            </a>
-        </li>
-
-        {{-- Plantillas --}}
+        {{-- Plantillas PDF --}}
         <li class="nav-item">
             <a class="nav-link {{ request()->routeIs('templates.*') ? 'active' : '' }}" href="{{ route('templates.index') }}" wire:navigate>
                 <i class="bi bi-file-earmark-ruled"></i>
-                <span class="nav-link-text">Plantillas</span>
+                <span class="nav-link-text">Plantillas PDF</span>
             </a>
         </li>
 
         <hr class="sidebar-divider">
-        <div class="sidebar-heading">Configuracion</div>
+        <div class="sidebar-heading">Checklists</div>
 
         {{-- Plantillas de Requisitos --}}
         <li class="nav-item">
@@ -74,6 +66,9 @@
                 <span class="nav-link-text">Requisitos</span>
             </a>
         </li>
+
+        <hr class="sidebar-divider">
+        <div class="sidebar-heading">Configuracion</div>
 
         {{-- Usuarios --}}
         <li class="nav-item">

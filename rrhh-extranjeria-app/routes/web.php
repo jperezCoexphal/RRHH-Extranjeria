@@ -76,19 +76,11 @@ Route::prefix('/v1')->middleware('auth')->group(function () {
         Volt::route('/{inmigrationFile}/edit', 'inmigration-files.edit')->name('edit');
     });
 
-    // Documents - Volt Components for views, API for actions
+    // Documents - Generación en caliente (no se almacenan)
     Route::prefix('documents')->name('documents.')->group(function () {
-        Volt::route('/', 'documents.index')->name('index');
-        Volt::route('/{inmigrationFileId}', 'documents.show')->name('show');
-        // API endpoints
         Route::get('/{inmigrationFileId}/check', [DocumentController::class, 'checkAvailability'])->name('check');
-        Route::post('/{inmigrationFileId}/generate', [DocumentController::class, 'generatePack'])->name('generate');
-        Route::post('/{inmigrationFileId}/generate-ex', [DocumentController::class, 'generateModeloEX'])->name('generate-ex');
-        Route::get('/{inmigrationFileId}/list', [DocumentController::class, 'listDocuments'])->name('list');
-        Route::get('/download', [DocumentController::class, 'download'])->name('download');
-        Route::get('/{inmigrationFileId}/download/{documentName}', [DocumentController::class, 'downloadByName'])->name('download-by-name');
-        Route::get('/{inmigrationFileId}/download-all', [DocumentController::class, 'downloadAll'])->name('download-all');
-        Route::delete('/delete', [DocumentController::class, 'deleteDocument'])->name('delete');
+        Route::get('/{inmigrationFileId}/generate', [DocumentController::class, 'generatePack'])->name('generate');
+        Route::get('/{inmigrationFileId}/generate-ex', [DocumentController::class, 'generateModeloEX'])->name('generate-ex');
     });
 
     // Templates - Volt Components
@@ -99,17 +91,13 @@ Route::prefix('/v1')->middleware('auth')->group(function () {
         Volt::route('/{id}/edit', 'templates.edit')->name('edit');
     });
 
-    // Checklist (Requisitos del expediente) - API Controllers
+    // Checklist (Requisitos del expediente) - Volt + API
     Route::prefix('checklist')->name('checklist.')->group(function () {
-        Route::get('/{inmigrationFileId}', [ChecklistController::class, 'index'])->name('index');
+        // Vista principal (Livewire Volt)
+        Volt::route('/{inmigrationFileId}', 'checklist.show')->name('index');
+        // API endpoints
         Route::get('/{inmigrationFileId}/summary', [ChecklistController::class, 'summary'])->name('summary');
         Route::get('/{inmigrationFileId}/upcoming', [ChecklistController::class, 'upcoming'])->name('upcoming');
-        Route::get('/{inmigrationFileId}/entity/{entity}', [ChecklistController::class, 'byEntity'])->name('by-entity');
-        Route::post('/{inmigrationFileId}/requirements', [ChecklistController::class, 'store'])->name('store');
-        Route::post('/{inmigrationFileId}/regenerate', [ChecklistController::class, 'regenerate'])->name('regenerate');
-        Route::patch('/requirements/{requirementId}/complete', [ChecklistController::class, 'complete'])->name('complete');
-        Route::put('/requirements/{requirementId}', [ChecklistController::class, 'update'])->name('update');
-        Route::delete('/requirements/{requirementId}', [ChecklistController::class, 'destroy'])->name('destroy');
     });
 
     // Requirement Templates (Plantillas de requisitos) - Volt Components

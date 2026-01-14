@@ -7,16 +7,16 @@ use Carbon\Carbon;
 class CampaignHelper
 {
     /**
-     * Calcula la campana actual basada en la fecha.
-     * La campana va del 1 de septiembre al 31 de agosto del ano siguiente.
+     * Calcula la campaña actual basada en la fecha.
+     * La campaña va del 1 de septiembre al 31 de agosto del ano siguiente.
      * Formato: "2025-2026"
      */
     public static function current(?Carbon $date = null): string
     {
         $date = $date ?? Carbon::now();
 
-        // Si estamos entre septiembre y diciembre, la campana es ano_actual - ano_siguiente
-        // Si estamos entre enero y agosto, la campana es ano_anterior - ano_actual
+        // Si estamos entre septiembre y diciembre, la campaña es ano_actual - ano_siguiente
+        // Si estamos entre enero y agosto, la campaña es ano_anterior - ano_actual
         if ($date->month >= 9) {
             $startYear = $date->year;
             $endYear = $date->year + 1;
@@ -29,7 +29,7 @@ class CampaignHelper
     }
 
     /**
-     * Obtiene la campana anterior a la actual.
+     * Obtiene la campaña anterior a la actual.
      */
     public static function previous(?Carbon $date = null): string
     {
@@ -47,7 +47,7 @@ class CampaignHelper
     }
 
     /**
-     * Obtiene la campana siguiente a la actual.
+     * Obtiene la campaña siguiente a la actual.
      */
     public static function next(?Carbon $date = null): string
     {
@@ -65,7 +65,7 @@ class CampaignHelper
     }
 
     /**
-     * Valida si un string tiene formato de campana valido (YYYY-YYYY).
+     * Valida si un string tiene formato de campaña valido (YYYY-YYYY).
      */
     public static function isValid(string $campaign): bool
     {
@@ -80,7 +80,7 @@ class CampaignHelper
     }
 
     /**
-     * Formatea una campana al formato completo YYYY-YYYY.
+     * Formatea una campaña al formato completo YYYY-YYYY.
      * Soporta formatos de entrada: "2025-2026", "25-26", "2025-26", "25-2026"
      */
     public static function format(string $campaign): string
@@ -129,7 +129,7 @@ class CampaignHelper
     }
 
     /**
-     * Genera una lista de campanas desde un ano inicial hasta la actual.
+     * Genera una lista de campañas desde un ano inicial hasta la actual.
      */
     public static function range(int $startYear, ?int $endYear = null): array
     {

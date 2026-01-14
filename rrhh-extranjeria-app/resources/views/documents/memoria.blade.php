@@ -134,7 +134,7 @@
         <h1>Memoria Justificativa</h1>
         <h2>Necesidad de Contratación de Trabajador Extranjero</h2>
         <div class="subtitle">
-            Campaña: {{ $campana ?? '' }} | Expediente: {{ $expediente_codigo ?? '' }}
+            Campaña: {{ $campaña ?? '' }} | Expediente: {{ $expediente_codigo ?? '' }}
         </div>
     </div>
 
@@ -258,7 +258,7 @@
         <div class="paragraph">
             La empresa <strong>{{ $razon_social ?? '' }}</strong>, dedicada a la actividad agrícola
             con código CNAE {{ $cnae ?? '' }}, se encuentra en la necesidad de incorporar personal
-            para cubrir las demandas de producción de la campaña {{ $campana ?? '' }}.
+            para cubrir las demandas de producción de la campaña {{ $campaña ?? '' }}.
         </div>
 
         <div class="subsection-title">4.2. Descripción del Puesto y Funciones</div>

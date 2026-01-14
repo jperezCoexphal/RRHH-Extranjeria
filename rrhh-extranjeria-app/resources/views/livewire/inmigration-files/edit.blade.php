@@ -218,7 +218,7 @@ class extends Component {
                     <div class="card-body">
                         <div class="row g-3">
                             <div class="col-md-3">
-                                <label class="form-label">Campana</label>
+                                <label class="form-label">Campaña</label>
                                 <input type="text" value="{{ $campaign }}" class="form-control" readonly disabled>
                             </div>
                             <div class="col-md-3">

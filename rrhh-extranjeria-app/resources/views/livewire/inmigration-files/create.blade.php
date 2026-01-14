@@ -585,7 +585,7 @@ class extends Component {
                     <div class="card-body">
                         <div class="row g-3">
                             <div class="col-md-3">
-                                <label class="form-label">Campana <span class="text-danger">*</span></label>
+                                <label class="form-label">Campaña <span class="text-danger">*</span></label>
                                 <input type="text" wire:model="campaign" class="form-control @error('campaign') is-invalid @enderror" readonly>
                                 @error('campaign') <div class="invalid-feedback">{{ $message }}</div> @enderror
                             </div>
