@@ -98,7 +98,7 @@ class DocumentPackDTO
         return [
             'expediente_codigo' => $file->file_code ?? '',
             'expediente_titulo' => $file->file_title ?? '',
-            'campana' => $file->campaign ?? '',
+            'campaña' => $file->campaign ?? '',
             'tipo_solicitud' => $file->application_type?->value ?? '',
             'puesto_trabajo' => $file->job_title ?? '',
             'fecha_inicio' => $file->start_date?->format('d/m/Y') ?? '',

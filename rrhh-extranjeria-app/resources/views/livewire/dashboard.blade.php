@@ -290,7 +290,7 @@ class extends Component {
                                                 {{ $expediente['file_title'] }}
                                             </td>
                                             <td>
-                                                {{ $expediente['employer']['name'] ?? 'N/A' }}
+                                                {{ $expediente['employer']['comercial_name'] ?? $expediente['employer']['fiscal_name'] ?? 'N/A' }}
                                             </td>
                                             <td>
                                                 @php
