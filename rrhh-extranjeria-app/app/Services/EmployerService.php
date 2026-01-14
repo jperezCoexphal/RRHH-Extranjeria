@@ -47,47 +47,91 @@ class EmployerService
     public function create(array $data): Employer
     {
         DB::beginTransaction();
-        $employerDTO = EmployerDTO::fromRequest($data);
-        $employer = $this->repository->create($employerDTO);
-        $legalForm = LegalForm::from($data['legal_form']);
+        
 
-        // dd($employer->id);
-        try{
+        try {
+            $employerDTO = EmployerDTO::fromRequest($data);
+            
+            $employer = $this->repository->create($employerDTO);
+           
+            $legalForm = LegalForm::from($data['legal_form']);
 
-        if ($legalForm === LegalForm::EI || $legalForm === LegalForm::ERL) {
-            $freelancerDTO = FreelancerDTO::fromRequest($data, $employer->id);
-            $this->repository->createFreelancer($freelancerDTO);
-        } else {
-            $companyDTO = CompanyDTO::fromRequest($data, $employer->id);
-            $this->repository->createCompany($companyDTO);
+            if ($legalForm === LegalForm::EI || $legalForm === LegalForm::ERL) {
+                $freelancerDTO = FreelancerDTO::fromRequest($data, $employer->id);
+                $this->repository->createFreelancer($freelancerDTO);
+            } else {
+                $companyDTO = CompanyDTO::fromRequest($data, $employer->id);
+                $this->repository->createCompany($companyDTO);
+            }
+
+            
+
+            // Crear direccion si se proporciona
+            if (!empty($data['street_name']) && !empty($data['country_id'])) {
+                $employer->address()->create([
+                    'street_name' => $data['street_name'],
+                    'number' => $data['number'] ?? null,
+                    'floor_door' => $data['floor_door'] ?? null,
+                    'postal_code' => $data['postal_code'] ?? '00000',
+                    'country_id' => $data['country_id'],
+                    'province_id' => $data['province_id'] ?? null,
+                    'municipality_id' => $data['municipality_id'] ?? null,
+                ]);
+            }
+
+            DB::commit();
+
+            return $employer->fresh(['company', 'freelancer', 'address']);
+        } catch (\Exception $e) {
+            dd("Sa pifiao: " . $e->getMessage());
+            DB::rollBack();
+            throw $e;
         }
-        DB::commit();
-    }catch(\Exception $e){
-        DB::rollBack();
-        // dd('cagaste');
-    }
-
-        return $employer->fresh(['company', 'freelancer']);
     }
 
     public function update(int $id, array $data): bool
     {
-        $employerDTO = EmployerDTO::fromRequest($data);
-        $updated = $this->repository->update($id, $employerDTO);
+        DB::beginTransaction();
 
-        if ($updated) {
-            $legalForm = LegalForm::from($data['legal_form']);
+        try {
+            $employerDTO = EmployerDTO::fromRequest($data);
+            $updated = $this->repository->update($id, $employerDTO);
 
-            if ($legalForm === LegalForm::EI || $legalForm === LegalForm::ERL) {
-                $freelancerDTO = FreelancerDTO::fromRequest($data, $id);
-                $this->repository->updateFreelancer($id, $freelancerDTO);
-            } else {
-                $companyDTO = CompanyDTO::fromRequest($data, $id);
-                $this->repository->updateCompany($id, $companyDTO);
+            if ($updated) {
+                $legalForm = LegalForm::from($data['legal_form']);
+                $employer = $this->repository->findById($id);
+
+                if ($legalForm === LegalForm::EI || $legalForm === LegalForm::ERL) {
+                    $freelancerDTO = FreelancerDTO::fromRequest($data, $id);
+                    $this->repository->updateFreelancer($id, $freelancerDTO);
+                } else {
+                    $companyDTO = CompanyDTO::fromRequest($data, $id);
+                    $this->repository->updateCompany($id, $companyDTO);
+                }
+
+                // Actualizar direccion
+                if (!empty($data['street_name']) && !empty($data['country_id'])) {
+                    $employer->address()->updateOrCreate(
+                        ['addressable_id' => $id, 'addressable_type' => Employer::class],
+                        [
+                            'street_name' => $data['street_name'],
+                            'number' => $data['number'] ?? null,
+                            'floor_door' => $data['floor_door'] ?? null,
+                            'postal_code' => $data['postal_code'] ?? '00000',
+                            'country_id' => $data['country_id'],
+                            'province_id' => $data['province_id'] ?? null,
+                            'municipality_id' => $data['municipality_id'] ?? null,
+                        ]
+                    );
+                }
             }
-        }
 
-        return $updated;
+            DB::commit();
+            return $updated;
+        } catch (\Exception $e) {
+            DB::rollBack();
+            throw $e;
+        }
     }
 
     public function delete(int $id): bool

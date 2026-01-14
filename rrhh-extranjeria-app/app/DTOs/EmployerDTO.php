@@ -8,12 +8,12 @@ class EmployerDTO
 {
     public function __construct(
         public readonly LegalForm $legal_form,
-        public readonly string $fiscal_name,
         public readonly string $nif,
-        public readonly string $ccc,
-        public readonly string $cnae,
         public readonly bool $is_associated,
+        public readonly ?string $fiscal_name = null,
         public readonly ?string $comercial_name = null,
+        public readonly ?string $ccc = null,
+        public readonly ?string $cnae = null,
         public readonly ?string $email = null,
         public readonly ?string $phone = null,
         public readonly ?int $id = null,
@@ -21,15 +21,14 @@ class EmployerDTO
 
     public static function fromRequest(array $data): self
     {
-      
         return new self(
             legal_form: LegalForm::from($data['legal_form']),
-            fiscal_name: $data['fiscal_name'],
             nif: $data['nif'],
-            ccc: $data['ccc'],
-            cnae: $data['cnae'],
-            is_associated: $data['is_associated'] ?? false,
+            is_associated: (bool) ($data['is_associated'] ?? false),
+            fiscal_name: $data['fiscal_name'] ?? null,
             comercial_name: $data['comercial_name'] ?? null,
+            ccc: $data['ccc'] ?? null,
+            cnae: $data['cnae'] ?? null,
             email: $data['email'] ?? null,
             phone: $data['phone'] ?? null,
             id: $data['id'] ?? null,

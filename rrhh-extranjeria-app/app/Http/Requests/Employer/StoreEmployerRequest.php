@@ -23,7 +23,7 @@ class StoreEmployerRequest extends FormRequest
             'fiscal_name' => ['required', 'string', 'max:100', 'unique:employers,fiscal_name'],
             'nif' => ['required', 'string', 'size:9', 'unique:employers,nif'],
             'ccc' => ['required', 'string', 'size:11'],
-            'cnae' => ['required', 'string', 'size:5'],
+            'cnae' => ['required', 'string', 'size:4'],
             'is_associated' => ['required', 'boolean'],
             'comercial_name' => ['nullable', 'string', 'max:100'],
             'email' => ['nullable', 'email', 'max:255', 'unique:employers,email'],

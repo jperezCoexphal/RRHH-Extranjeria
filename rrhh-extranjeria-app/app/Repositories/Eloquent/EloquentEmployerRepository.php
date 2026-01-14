@@ -26,6 +26,7 @@ class EloquentEmployerRepository implements EmployerRepository
         return $this->employer->with(['company', 'freelancer'])->get();
     }
 
+
     public function paginate(int $perPage = 15): LengthAwarePaginator
     {
         return $this->employer->with(['company', 'freelancer'])
@@ -44,7 +45,7 @@ class EloquentEmployerRepository implements EmployerRepository
     }
 
     public function create(EmployerDTO $dto): Employer
-    {
+    {   
         return $this->employer->create($dto->toArray());
     }
 

@@ -23,8 +23,19 @@ return new class extends Migration
             $table->string('niss', 12)->unique('niss_UNIQUE')->nullable();
             $table->enum('gender', Gender::values());
             $table->date('birthdate');
-            $table->string('nationality', 50);
             $table->enum('marital_status', MaritalStatus::values());
+
+            // Referencias a países
+            $table->foreignId('nationality_id')
+                ->constrained('countries')
+                ->onDelete('restrict')
+                ->onUpdate('cascade');
+            $table->foreignId('birth_country_id')
+                ->constrained('countries')
+                ->onDelete('restrict')
+                ->onUpdate('cascade');
+            $table->string('birthplace_name', 255);
+
             $table->softDeletes();
             $table->timestamps();
         });

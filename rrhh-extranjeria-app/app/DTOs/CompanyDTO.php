@@ -7,8 +7,8 @@ class CompanyDTO
     public function __construct(
         public readonly int $employer_id,
         public readonly string $representative_name,
-        public readonly string $representative_title,
-        public readonly string $representantive_identity_number,
+        public readonly ?string $representative_title = null,
+        public readonly ?string $representantive_identity_number = null,
     ) {}
 
     public static function fromRequest(array $data, int $employerId): self
@@ -16,8 +16,8 @@ class CompanyDTO
         return new self(
             employer_id: $employerId,
             representative_name: $data['representative_name'],
-            representative_title: $data['representative_title'],
-            representantive_identity_number: $data['representantive_identity_number'],
+            representative_title: $data['representative_title'] ?? null,
+            representantive_identity_number: $data['representantive_identity_number'] ?? $data['representative_identity_number'] ?? null,
         );
     }
 

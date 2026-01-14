@@ -1,3 +1,11 @@
+# Claude Code
+.claude/
+tmpclaude*
+claude-output*
+claude_output*
+*.claude
+
+# Logs and environment
 *.log
 .DS_Store
 .env

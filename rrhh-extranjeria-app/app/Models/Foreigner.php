@@ -6,8 +6,11 @@ use App\Enums\Gender;
 use App\Enums\MaritalStatus;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Database\Eloquent\Relations\MorphOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Foreigner extends Model
@@ -26,8 +29,10 @@ class Foreigner extends Model
         'niss',
         'gender',
         'birthdate',
-        'nationality',
         'marital_status',
+        'nationality_id',
+        'birth_country_id',
+        'birthplace_name',
     ];
 
         // CASTS
@@ -43,6 +48,38 @@ class Foreigner extends Model
     public function extraData(): HasOne
     {
         return $this->hasOne(ForeignerExtraData::class, 'foreigner_id');
+    }
+
+    /**
+     * Nacionalidad del extranjero
+     */
+    public function nationality(): BelongsTo
+    {
+        return $this->belongsTo(Country::class, 'nationality_id');
+    }
+
+    /**
+     * País de nacimiento
+     */
+    public function birthCountry(): BelongsTo
+    {
+        return $this->belongsTo(Country::class, 'birth_country_id');
+    }
+
+    /**
+     * Dirección del extranjero (relación polimórfica)
+     */
+    public function address(): MorphOne
+    {
+        return $this->morphOne(Address::class, 'addressable');
+    }
+
+    /**
+     * Expedientes de inmigración del extranjero
+     */
+    public function inmigrationFiles(): HasMany
+    {
+        return $this->hasMany(InmigrationFile::class, 'foreigner_id');
     }
 
     public function relationships(): BelongsToMany

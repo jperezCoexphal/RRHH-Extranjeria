@@ -32,7 +32,7 @@ enum LegalForm: string
     public function type (): string
     {
         return match($this) {
-            self::EI, self::ERL => 'PHYSYCAL',
+            self::EI, self::ERL => 'PHYSICAL',
             default => 'LEGAL'
         };
     }

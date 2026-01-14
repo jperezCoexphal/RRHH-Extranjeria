@@ -1,0 +1,20 @@
+# Claude Code
+.claude/
+tmpclaude*
+claude-output*
+claude_output*
+*.claude
+CLAUDE.md
+.claudeignore
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE
+/.idea
+/.vscode
+/.fleet
+/.zed
+*.swp
+*.swo

@@ -6,7 +6,9 @@ use App\Enums\LegalForm;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Database\Eloquent\Relations\MorphOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Employer extends Model
@@ -46,6 +48,22 @@ class Employer extends Model
     public function company(): HasOne
     {
         return $this->hasOne(Company::class, 'employer_id');
+    }
+
+    /**
+     * Dirección del empleador (relación polimórfica)
+     */
+    public function address(): MorphOne
+    {
+        return $this->morphOne(Address::class, 'addressable');
+    }
+
+    /**
+     * Expedientes de inmigración asociados al empleador
+     */
+    public function inmigrationFiles(): HasMany
+    {
+        return $this->hasMany(InmigrationFile::class, 'employer_id');
     }
 
     // ACCESSORS

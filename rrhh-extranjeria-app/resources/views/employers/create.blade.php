@@ -88,7 +88,7 @@
 
                 <div class="col-md-4">
                     <label for="cnae" class="form-label">CNAE <span class="text-danger">*</span></label>
-                    <input type="text" class="form-control @error('cnae') is-invalid @enderror" id="cnae" name="cnae" value="{{ old('cnae') }}" maxlength="5" required>
+                    <input type="text" class="form-control @error('cnae') is-invalid @enderror" id="cnae" name="cnae" value="{{ old('cnae') }}" maxlength="4" required>
                     @error('cnae')
                         <div class="invalid-feedback">{{ $message }}</div>
                     @enderror

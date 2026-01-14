@@ -9,7 +9,7 @@ enum MaritalStatus: string
     case Cas = 'Casado/a';
     case Viu = 'Viudo/a';
     case Div = 'Divorciado';
-    case Sep = 'Seprado/a';
+    case Sep = 'Separado/a';
 
     public static function values() : array
     {
