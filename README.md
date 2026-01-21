@@ -1,6 +1,6 @@
 # RRHH Extranjeria
 
-Sistema de gestion de expedientes de extranjeria para la tramitacion de permisos de trabajo en Espana.
+Sistema de gestion de expedientes de extranjeria para la tramitacion de permisos de trabajo en España.
 
 ## Tabla de Contenidos
 
@@ -31,7 +31,7 @@ RRHH Extranjeria es una aplicacion web para gestionar expedientes de extranjeria
 
 | Categoria | Tecnologia |
 |-----------|------------|
-| Backend | PHP 8.2+ / Laravel 11 |
+| Backend | PHP 8.2+ / Laravel 12 |
 | Frontend | Livewire Volt / Bootstrap 5 / SCSS |
 | Base de datos | MySQL 8.0+ |
 | PDF Generation | DomPDF (Blade) + pdftk (AcroForms) |

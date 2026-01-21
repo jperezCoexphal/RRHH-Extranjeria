@@ -378,7 +378,7 @@ class extends Component {
                              style="cursor: pointer;">
                             <div class="d-flex align-items-center">
                                 <i class="bi bi-{{ in_array('GENERAL', $openSections) ? 'chevron-down' : 'chevron-right' }} me-2"></i>
-                                <span class="fw-semibold">Requisitos General</span>
+                                <span class="fw-semibold">Requisitos Generales</span>
                                 <span class="badge {{ $generalInfo['badgeClass'] }} ms-2">{{ $generalInfo['badgeText'] }}</span>
                                 @if($reqsByEntity['GENERAL']['overdue'] > 0)
                                     <i class="bi bi-exclamation-triangle-fill text-danger ms-2"></i>
@@ -509,14 +509,14 @@ class extends Component {
                         Empleador
                     </h6>
                     <div class="d-flex gap-2">
-                        <a href="{{ route('inmigration-files.edit', $file->id) }}#empleador" class="btn btn-sm btn-outline-warning" title="Editar">
-                            <i class="bi bi-pencil"></i>
-                        </a>
                         @if($file->employer)
                             <a href="{{ route('employers.show', $file->employer->id) }}" class="btn btn-sm btn-outline-primary">
                                 Ver Empleador
                             </a>
                         @endif
+                        <a href="{{ route('inmigration-files.edit', $file->id) }}#empleador" class="btn btn-sm btn-outline-warning" title="Editar">
+                            <i class="bi bi-pencil"></i>
+                        </a>
                     </div>
                 </div>
                 <div class="card-body">
@@ -629,14 +629,14 @@ class extends Component {
                         Trabajador Extranjero
                     </h6>
                     <div class="d-flex gap-2">
-                        <a href="{{ route('inmigration-files.edit', $file->id) }}#trabajador" class="btn btn-sm btn-outline-warning" title="Editar">
-                            <i class="bi bi-pencil"></i>
-                        </a>
                         @if($file->foreigner)
                             <a href="{{ route('foreigners.show', $file->foreigner->id) }}" class="btn btn-sm btn-outline-primary">
                                 Ver Extranjero
                             </a>
                         @endif
+                        <a href="{{ route('inmigration-files.edit', $file->id) }}#trabajador" class="btn btn-sm btn-outline-warning" title="Editar">
+                            <i class="bi bi-pencil"></i>
+                        </a>
                     </div>
                 </div>
                 <div class="card-body">
@@ -674,7 +674,7 @@ class extends Component {
                                 @endif
                             </div>
                             <button wire:click.stop="startAddingRequirement('WORKER')" class="btn btn-sm btn-outline-primary py-0">
-                                <i class="bi bi-plus"></i>
+                                <i class=" bi bi-plus"></i>
                             </button>
                         </div>
 
@@ -948,7 +948,7 @@ class extends Component {
                 <div class="card-body">
                     <div class="d-grid gap-2">
                         @if($file->employer_id && $file->foreigner_id)
-                            <a href="{{ route('documents.generate', $file->id) }}" class="btn btn-primary">
+                            <a href="{{ route('documents.generate', $file->id) }}" class="btn btn-primary text-white">
                                 <i class="bi bi-file-earmark-zip me-1"></i>
                                 Generar Pack Documentos
                             </a>

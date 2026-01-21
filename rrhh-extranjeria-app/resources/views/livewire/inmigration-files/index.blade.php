@@ -132,7 +132,7 @@ class extends Component {
             <h4 class="text-gray-800 mb-1">Gestion de Expedientes</h4>
             <p class="text-muted mb-0">Expedientes de inmigracion</p>
         </div>
-        <a href="{{ route('inmigration-files.create') }}" class="btn btn-primary">
+        <a href="{{ route('inmigration-files.create') }}" class="btn btn-primary text-white">
             <i class="bi bi-plus-lg me-1"></i>
             Nuevo Expediente
         </a>

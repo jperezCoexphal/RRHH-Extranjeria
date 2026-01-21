@@ -5,23 +5,12 @@ use Livewire\Volt\Component;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
 
-new
-#[Layout('layouts.app')]
-#[Title('Detalle Extranjero - RRHH Extranjeria')]
-class extends Component {
+new #[Layout('layouts.app')] #[Title('Detalle Extranjero - RRHH Extranjeria')] class extends Component {
     public Foreigner $foreigner;
 
     public function mount(Foreigner $foreigner): void
     {
-        $this->foreigner = $foreigner->load([
-            'extraData',
-            'nationality',
-            'birthCountry',
-            'address.country',
-            'address.province',
-            'address.municipality',
-            'inmigrationFiles.employer'
-        ]);
+        $this->foreigner = $foreigner->load(['extraData', 'nationality', 'birthCountry', 'address.country', 'address.province', 'address.municipality', 'inmigrationFiles.employer']);
     }
 
     public function delete(): void
@@ -51,9 +40,8 @@ class extends Component {
                 <i class="bi bi-pencil me-1"></i>
                 Editar
             </a>
-            <button wire:click="delete"
-                    wire:confirm="¿Estas seguro de eliminar este extranjero?"
-                    class="btn btn-danger">
+            <button wire:click="delete" wire:confirm="¿Estas seguro de eliminar este extranjero?"
+                class="btn btn-danger">
                 <i class="bi bi-trash me-1"></i>
                 Eliminar
             </button>
@@ -93,9 +81,10 @@ class extends Component {
                             <p class="mb-2">{{ $foreigner->niss ?? '-' }}</p>
                         </div>
                         <div class="col-md-4">
-                            <label class="form-label small text-muted mb-0">Genero</label>
+                            <label class="form-label small text-muted mb-0">Género</label>
                             <p class="mb-2">
-                                <i class="bi bi-{{ $foreigner->gender->value === 'Masculino' ? 'gender-male text-primary' : 'gender-female text-danger' }} me-1"></i>
+                                <i
+                                    class="bi bi-{{ $foreigner->gender->value == 'Hombre' ? 'gender-male text-primary' : 'gender-female text-danger' }} me-1"></i>
                                 {{ $foreigner->gender->value }}
                             </p>
                         </div>
@@ -109,7 +98,9 @@ class extends Component {
                         </div>
                         <div class="col-md-4">
                             <label class="form-label small text-muted mb-0">Nacionalidad</label>
-                            <p class="mb-2"><span class="badge bg-primary">{{ $foreigner->nationality?->country_name ?? '-' }}</span></p>
+                            <p class="mb-2"><span
+                                    class="badge bg-primary">{{ $foreigner->nationality?->country_name ?? '-' }}</span>
+                            </p>
                         </div>
                         <div class="col-md-4">
                             <label class="form-label small text-muted mb-0">Pais Nacimiento</label>
@@ -124,7 +115,7 @@ class extends Component {
             </div>
 
             {{-- Datos Adicionales --}}
-            @if($foreigner->extraData)
+            @if ($foreigner->extraData)
                 <div class="card mb-4">
                     <div class="card-header">
                         <h6 class="m-0">
@@ -142,14 +133,15 @@ class extends Component {
                                 <label class="form-label small text-muted mb-0">Nombre de la Madre</label>
                                 <p class="mb-2">{{ $foreigner->extraData->mother_name ?? '-' }}</p>
                             </div>
-                            @if($foreigner->extraData->legal_guardian_name)
+                            @if ($foreigner->extraData->legal_guardian_name)
                                 <div class="col-md-4">
                                     <label class="form-label small text-muted mb-0">Tutor Legal</label>
                                     <p class="mb-2">{{ $foreigner->extraData->legal_guardian_name }}</p>
                                 </div>
                                 <div class="col-md-4">
                                     <label class="form-label small text-muted mb-0">Doc. Identidad Tutor</label>
-                                    <p class="mb-2">{{ $foreigner->extraData->legal_guardian_identity_number ?? '-' }}</p>
+                                    <p class="mb-2">
+                                        {{ $foreigner->extraData->legal_guardian_identity_number ?? '-' }}</p>
                                 </div>
                                 <div class="col-md-4">
                                     <label class="form-label small text-muted mb-0">Titulo Tutela</label>
@@ -171,7 +163,7 @@ class extends Component {
                     <span class="badge bg-primary">{{ $foreigner->inmigrationFiles->count() }}</span>
                 </div>
                 <div class="card-body p-0">
-                    @if($foreigner->inmigrationFiles->count() > 0)
+                    @if ($foreigner->inmigrationFiles->count() > 0)
                         <div class="table-responsive">
                             <table class="table table-hover mb-0">
                                 <thead class="table-light">
@@ -183,10 +175,11 @@ class extends Component {
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    @foreach($foreigner->inmigrationFiles as $file)
+                                    @foreach ($foreigner->inmigrationFiles as $file)
                                         <tr>
                                             <td>
-                                                <a href="{{ route('inmigration-files.show', $file->id) }}" class="fw-semibold text-decoration-none">
+                                                <a href="{{ route('inmigration-files.show', $file->id) }}"
+                                                    class="fw-semibold text-decoration-none">
                                                     {{ $file->file_code }}
                                                 </a>
                                             </td>
@@ -204,7 +197,8 @@ class extends Component {
                                                         'archivado' => 'dark',
                                                     ];
                                                 @endphp
-                                                <span class="badge bg-{{ $statusColors[$file->status->value] ?? 'secondary' }}">
+                                                <span
+                                                    class="badge bg-{{ $statusColors[$file->status->value] ?? 'secondary' }}">
                                                     {{ ucfirst(str_replace('_', ' ', $file->status->value)) }}
                                                 </span>
                                             </td>
@@ -237,16 +231,20 @@ class extends Component {
                 <div class="card-body">
                     <div class="mb-3">
                         <label class="form-label small text-muted mb-0">Email</label>
-                        @if($foreigner->extraData?->email)
-                            <p class="mb-0"><a href="mailto:{{ $foreigner->extraData->email }}">{{ $foreigner->extraData->email }}</a></p>
+                        @if ($foreigner->extraData?->email)
+                            <p class="mb-0"><a
+                                    href="mailto:{{ $foreigner->extraData->email }}">{{ $foreigner->extraData->email }}</a>
+                            </p>
                         @else
                             <p class="mb-0 text-muted">-</p>
                         @endif
                     </div>
                     <div>
                         <label class="form-label small text-muted mb-0">Telefono</label>
-                        @if($foreigner->extraData?->phone)
-                            <p class="mb-0"><a href="tel:{{ $foreigner->extraData->phone }}">{{ $foreigner->extraData->phone }}</a></p>
+                        @if ($foreigner->extraData?->phone)
+                            <p class="mb-0"><a
+                                    href="tel:{{ $foreigner->extraData->phone }}">{{ $foreigner->extraData->phone }}</a>
+                            </p>
                         @else
                             <p class="mb-0 text-muted">-</p>
                         @endif
@@ -263,13 +261,16 @@ class extends Component {
                     </h6>
                 </div>
                 <div class="card-body">
-                    @if($foreigner->address)
-                        <p class="mb-1">{{ $foreigner->address->street_name }} {{ $foreigner->address->number }}</p>
-                        @if($foreigner->address->floor_door)
+                    @if ($foreigner->address)
+                        <p class="mb-1">{{ $foreigner->address->street_name }} {{ $foreigner->address->number }}
+                        </p>
+                        @if ($foreigner->address->floor_door)
                             <p class="mb-1">{{ $foreigner->address->floor_door }}</p>
                         @endif
-                        <p class="mb-1">{{ $foreigner->address->postal_code }} {{ $foreigner->address->municipality?->municipality_name }}</p>
-                        <p class="mb-0">{{ $foreigner->address->province?->province_name }}, {{ $foreigner->address->country?->country_name }}</p>
+                        <p class="mb-1">{{ $foreigner->address->postal_code }}
+                            {{ $foreigner->address->municipality?->municipality_name }}</p>
+                        <p class="mb-0">{{ $foreigner->address->province?->province_name }},
+                            {{ $foreigner->address->country?->country_name }}</p>
                     @else
                         <p class="text-muted mb-0">Sin direccion registrada</p>
                     @endif

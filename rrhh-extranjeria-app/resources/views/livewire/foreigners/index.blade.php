@@ -84,7 +84,7 @@ class extends Component {
             <h4 class="text-gray-800 mb-1">Gestion de Extranjeros</h4>
             <p class="text-muted mb-0">Listado de trabajadores extranjeros</p>
         </div>
-        <a href="{{ route('foreigners.create') }}" class="btn btn-primary">
+        <a href="{{ route('foreigners.create') }}" class="btn btn-primary text-white">
             <i class="bi bi-plus-lg me-1"></i>
             Nuevo Extranjero
         </a>
@@ -145,7 +145,7 @@ class extends Component {
                 <table class="table table-hover mb-0">
                     <thead class="table-light">
                         <tr>
-                            <th>Nombre Completo</th>
+                            <th>Nombre Completo <i class="bi -bi-gender-male"></i></th>
                             <th>NIE</th>
                             <th>Pasaporte</th>
                             <th>Nacionalidad</th>
@@ -162,7 +162,7 @@ class extends Component {
                                     </a>
                                     <br>
                                     <small class="text-muted">
-                                        <i class="bi bi-{{ $foreigner->gender->value === 'Masculino' ? 'gender-male' : 'gender-female' }} me-1"></i>
+                                        <i class="bi bi-{{ $foreigner->gender->value === 'Hombre' ? 'gender-male' : 'gender-female' }} me-1"></i>
                                         {{ $foreigner->gender->value }}
                                     </small>
                                 </td>

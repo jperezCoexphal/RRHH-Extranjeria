@@ -116,7 +116,7 @@ class extends Component {
                     @endforeach
                 </select>
             </div>
-            <button wire:click="refresh" class="btn btn-primary">
+            <button wire:click="refresh" class="btn btn-primary text-white">
                 <i class="bi bi-arrow-clockwise me-1"></i>
                 Actualizar
             </button>
@@ -312,7 +312,7 @@ class extends Component {
                         <div class="text-center py-5">
                             <i class="bi bi-folder-x text-gray-300" style="font-size: 3rem;"></i>
                             <p class="text-muted mt-2">No hay expedientes recientes</p>
-                            <a href="{{ route('inmigration-files.create') }}" class="btn btn-primary mt-2">
+                            <a href="{{ route('inmigration-files.create') }}" class="btn btn-primary text-white mt-2">
                                 <i class="bi bi-plus-lg me-1"></i>
                                 Crear Expediente
                             </a>
