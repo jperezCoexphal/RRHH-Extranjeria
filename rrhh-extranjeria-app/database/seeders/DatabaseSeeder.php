@@ -17,7 +17,7 @@ class DatabaseSeeder extends Seeder
             CountrySeeder::class,      // Primero países
             ProvinceSeeder::class,     // Luego provincias (depende de países)
             MunicipalitySeeder::class, // Finalmente municipios (depende de provincias)
-            DemoDataSeeder::class,     // Datos demo (empleadores, extranjeros, expedientes)
+            // DemoDataSeeder::class,     // Datos demo (empleadores, extranjeros, expedientes)
         ]);
 
         $this->command->info('Database seeded successfully!');

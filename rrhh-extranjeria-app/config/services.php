@@ -35,4 +35,8 @@ return [
         ],
     ],
 
+    'pdftk' => [
+        'path' => env('PDFTK_PATH', 'pdftk'),
+    ],
+
 ];

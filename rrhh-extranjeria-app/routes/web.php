@@ -106,4 +106,20 @@ Route::prefix('/v1')->middleware('auth')->group(function () {
         Volt::route('/create', 'requirement-templates.create')->name('create');
         Volt::route('/{requirementTemplate}/edit', 'requirement-templates.edit')->name('edit');
     });
+
+    // PDF Templates (Plantillas PDF AcroForms) - Volt Components
+    Route::prefix('pdf-templates')->name('pdf-templates.')->group(function () {
+        Volt::route('/', 'pdf-templates.index')->name('index');
+        Volt::route('/create', 'pdf-templates.create')->name('create');
+        Volt::route('/{pdfTemplate}', 'pdf-templates.show')->name('show');
+        Volt::route('/{pdfTemplate}/edit', 'pdf-templates.edit')->name('edit');
+
+        // Download PDF file
+        Route::get('/{pdfTemplate}/download', function (\App\Models\PdfTemplate $pdfTemplate) {
+            if (!$pdfTemplate->file_exists) {
+                abort(404, 'El archivo PDF no existe.');
+            }
+            return response()->download($pdfTemplate->file_path, $pdfTemplate->original_filename);
+        })->name('download');
+    });
 });

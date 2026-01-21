@@ -773,6 +773,62 @@ class extends Component {
                                             </div>
                                         @endif
 
+                                        {{-- Direccion del Empleador --}}
+                                        <div class="col-12">
+                                            <hr class="my-2">
+                                            <h6 class="text-muted small mb-2">Direccion</h6>
+                                        </div>
+                                        <div class="col-md-8">
+                                            <label class="form-label">Calle</label>
+                                            <input type="text" wire:model="emp_street_name" class="form-control form-control-sm @error('emp_street_name') is-invalid @enderror">
+                                            @error('emp_street_name') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                                        </div>
+                                        <div class="col-md-2">
+                                            <label class="form-label">Numero</label>
+                                            <input type="text" wire:model="emp_number" class="form-control form-control-sm @error('emp_number') is-invalid @enderror">
+                                            @error('emp_number') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                                        </div>
+                                        <div class="col-md-2">
+                                            <label class="form-label">Piso/Pta</label>
+                                            <input type="text" wire:model="emp_floor_door" class="form-control form-control-sm @error('emp_floor_door') is-invalid @enderror">
+                                            @error('emp_floor_door') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                                        </div>
+                                        <div class="col-md-3">
+                                            <label class="form-label">Codigo Postal</label>
+                                            <input type="text" wire:model="emp_postal_code" class="form-control form-control-sm @error('emp_postal_code') is-invalid @enderror" maxlength="5">
+                                            @error('emp_postal_code') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                                        </div>
+                                        <div class="col-md-3">
+                                            <label class="form-label">Pais</label>
+                                            <select wire:model.live="emp_country_id" class="form-select form-select-sm @error('emp_country_id') is-invalid @enderror">
+                                                <option value="">Seleccionar...</option>
+                                                @foreach($countries as $country)
+                                                    <option value="{{ $country->id }}">{{ $country->country_name }}</option>
+                                                @endforeach
+                                            </select>
+                                            @error('emp_country_id') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                                        </div>
+                                        <div class="col-md-3">
+                                            <label class="form-label">Provincia</label>
+                                            <select wire:model.live="emp_province_id" class="form-select form-select-sm @error('emp_province_id') is-invalid @enderror" @if(empty($emp_provinces)) disabled @endif>
+                                                <option value="">Seleccionar...</option>
+                                                @foreach($emp_provinces as $province)
+                                                    <option value="{{ $province['id'] }}">{{ $province['province_name'] }}</option>
+                                                @endforeach
+                                            </select>
+                                            @error('emp_province_id') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                                        </div>
+                                        <div class="col-md-3">
+                                            <label class="form-label">Municipio</label>
+                                            <select wire:model="emp_municipality_id" class="form-select form-select-sm @error('emp_municipality_id') is-invalid @enderror" @if(empty($emp_municipalities)) disabled @endif>
+                                                <option value="">Seleccionar...</option>
+                                                @foreach($emp_municipalities as $municipality)
+                                                    <option value="{{ $municipality['id'] }}">{{ $municipality['municipality_name'] }}</option>
+                                                @endforeach
+                                            </select>
+                                            @error('emp_municipality_id') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                                        </div>
+
                                         <div class="col-12">
                                             <button type="button" wire:click="saveEmployer" class="btn btn-sm btn-success">
                                                 <i class="bi bi-check-lg me-1"></i>Guardar Empleador
@@ -912,6 +968,72 @@ class extends Component {
                                         <div class="col-md-6">
                                             <label class="form-label">Nombre de la Madre</label>
                                             <input type="text" wire:model="for_mother_name" class="form-control form-control-sm">
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label class="form-label">Telefono</label>
+                                            <input type="text" wire:model="for_phone" class="form-control form-control-sm @error('for_phone') is-invalid @enderror">
+                                            @error('for_phone') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label class="form-label">Email</label>
+                                            <input type="email" wire:model="for_email" class="form-control form-control-sm @error('for_email') is-invalid @enderror">
+                                            @error('for_email') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                                        </div>
+
+                                        {{-- Direccion del Extranjero --}}
+                                        <div class="col-12">
+                                            <hr class="my-2">
+                                            <h6 class="text-muted small mb-2">Direccion en Espana</h6>
+                                        </div>
+                                        <div class="col-md-8">
+                                            <label class="form-label">Calle</label>
+                                            <input type="text" wire:model="for_street_name" class="form-control form-control-sm @error('for_street_name') is-invalid @enderror">
+                                            @error('for_street_name') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                                        </div>
+                                        <div class="col-md-2">
+                                            <label class="form-label">Numero</label>
+                                            <input type="text" wire:model="for_number" class="form-control form-control-sm @error('for_number') is-invalid @enderror">
+                                            @error('for_number') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                                        </div>
+                                        <div class="col-md-2">
+                                            <label class="form-label">Piso/Pta</label>
+                                            <input type="text" wire:model="for_floor_door" class="form-control form-control-sm @error('for_floor_door') is-invalid @enderror">
+                                            @error('for_floor_door') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                                        </div>
+                                        <div class="col-md-3">
+                                            <label class="form-label">Codigo Postal</label>
+                                            <input type="text" wire:model="for_postal_code" class="form-control form-control-sm @error('for_postal_code') is-invalid @enderror" maxlength="5">
+                                            @error('for_postal_code') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                                        </div>
+                                        <div class="col-md-3">
+                                            <label class="form-label">Pais</label>
+                                            <select wire:model.live="for_country_id" class="form-select form-select-sm @error('for_country_id') is-invalid @enderror">
+                                                <option value="">Seleccionar...</option>
+                                                @foreach($countries as $country)
+                                                    <option value="{{ $country->id }}">{{ $country->country_name }}</option>
+                                                @endforeach
+                                            </select>
+                                            @error('for_country_id') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                                        </div>
+                                        <div class="col-md-3">
+                                            <label class="form-label">Provincia</label>
+                                            <select wire:model.live="for_province_id" class="form-select form-select-sm @error('for_province_id') is-invalid @enderror" @if(empty($for_provinces)) disabled @endif>
+                                                <option value="">Seleccionar...</option>
+                                                @foreach($for_provinces as $province)
+                                                    <option value="{{ $province['id'] }}">{{ $province['province_name'] }}</option>
+                                                @endforeach
+                                            </select>
+                                            @error('for_province_id') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                                        </div>
+                                        <div class="col-md-3">
+                                            <label class="form-label">Municipio</label>
+                                            <select wire:model="for_municipality_id" class="form-select form-select-sm @error('for_municipality_id') is-invalid @enderror" @if(empty($for_municipalities)) disabled @endif>
+                                                <option value="">Seleccionar...</option>
+                                                @foreach($for_municipalities as $municipality)
+                                                    <option value="{{ $municipality['id'] }}">{{ $municipality['municipality_name'] }}</option>
+                                                @endforeach
+                                            </select>
+                                            @error('for_municipality_id') <div class="invalid-feedback">{{ $message }}</div> @enderror
                                         </div>
 
                                         <div class="col-12">

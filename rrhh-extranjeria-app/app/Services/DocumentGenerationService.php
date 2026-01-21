@@ -3,22 +3,31 @@
 namespace App\Services;
 
 use App\DTOs\DocumentPackDTO;
+use App\Enums\PdfTemplateType;
 use App\Exceptions\DocumentGenerationException;
 use App\Models\Address;
 use App\Models\InmigrationFile;
 use App\Models\User;
 use App\Repositories\Contracts\InmigrationFileRepository;
+use App\Repositories\Contracts\PdfTemplateRepository;
+use Illuminate\Support\Facades\Log;
 
 /**
  * Servicio para la generación del pack de documentos de extranjería
  * Genera: Modelo EX (PDF), Contrato (PDF) y Memoria Justificativa (PDF)
  * Los documentos se generan en caliente y no se almacenan permanentemente
+ *
+ * Prioridad de generación:
+ * 1. Plantilla PDF AcroForm con mapeo configurado
+ * 2. Fallback a generación desde vista Blade (DomPDF)
  */
 class DocumentGenerationService
 {
     public function __construct(
         protected InmigrationFileRepository $inmigrationFileRepository,
         protected PdfGeneratorService $pdfGenerator,
+        protected PdfTemplateRepository $pdfTemplateRepository,
+        protected PdfTemplateFillerService $pdfFiller,
     ) {}
 
     /**
@@ -60,14 +69,26 @@ class DocumentGenerationService
         $documents = [];
 
         try {
-            // Generar Modelo EX
-            $documents["{$fileCode}_{$applicationType}.pdf"] = $this->pdfGenerator->generateModeloEX($templateData);
+            // Generar Modelo EX (prioridad: plantilla PDF, fallback: Blade)
+            $documents["{$fileCode}_{$applicationType}.pdf"] = $this->generateDocument(
+                PdfTemplateType::MODELO_EX,
+                $documentPack,
+                fn($data) => $this->pdfGenerator->generateModeloEX($data)
+            );
 
-            // Generar Contrato
-            $documents["{$fileCode}_Contrato.pdf"] = $this->pdfGenerator->generateContrato($templateData);
+            // Generar Contrato (prioridad: plantilla PDF, fallback: Blade)
+            $documents["{$fileCode}_Contrato.pdf"] = $this->generateDocument(
+                PdfTemplateType::CONTRATO,
+                $documentPack,
+                fn($data) => $this->pdfGenerator->generateContrato($data)
+            );
 
-            // Generar Memoria Justificativa
-            $documents["{$fileCode}_Memoria.pdf"] = $this->pdfGenerator->generateMemoria($templateData);
+            // Generar Memoria Justificativa (prioridad: plantilla PDF, fallback: Blade)
+            $documents["{$fileCode}_Memoria.pdf"] = $this->generateDocument(
+                PdfTemplateType::MEMORIA,
+                $documentPack,
+                fn($data) => $this->pdfGenerator->generateMemoria($data)
+            );
         } catch (\Exception $e) {
             throw DocumentGenerationException::generationFailed($e->getMessage());
         }
@@ -94,7 +115,6 @@ class DocumentGenerationService
         }
 
         $documentPack = $this->buildDocumentPackDTO($inmigrationFile, $representative);
-        $templateData = $documentPack->toTemplateData();
 
         $fileCode = $this->sanitizeFileCode($inmigrationFile->file_code);
         $applicationType = $inmigrationFile->application_type?->value ?? 'EX';
@@ -102,8 +122,48 @@ class DocumentGenerationService
         return [
             'file_code' => $inmigrationFile->file_code,
             'filename' => "{$fileCode}_{$applicationType}.pdf",
-            'content' => $this->pdfGenerator->generateModeloEX($templateData),
+            'content' => $this->generateDocument(
+                PdfTemplateType::MODELO_EX,
+                $documentPack,
+                fn($data) => $this->pdfGenerator->generateModeloEX($data)
+            ),
         ];
+    }
+
+    /**
+     * Genera un documento usando plantilla PDF si está disponible, o fallback a Blade
+     *
+     * @param PdfTemplateType $documentType Tipo de documento a generar
+     * @param DocumentPackDTO $documentPack Datos del expediente
+     * @param callable $fallbackGenerator Función de fallback que genera PDF desde Blade
+     * @return string Contenido binario del PDF generado
+     */
+    protected function generateDocument(
+        PdfTemplateType $documentType,
+        DocumentPackDTO $documentPack,
+        callable $fallbackGenerator
+    ): string {
+        // Buscar plantilla predeterminada para el tipo de documento
+        $applicationType = $documentPack->inmigrationFile->application_type;
+        $template = $this->pdfTemplateRepository->getDefaultTemplate($documentType, $applicationType);
+
+        // Si hay plantilla activa con archivo y mapeo, usar el filler
+        if ($template && $template->is_active && $template->file_exists && $template->mapped_fields_count > 0) {
+            try {
+                Log::debug("Generando {$documentType->value} con plantilla PDF #{$template->id}");
+                return $this->pdfFiller->fill($template, $documentPack);
+            } catch (\Exception $e) {
+                // Si falla la plantilla, hacer fallback a Blade
+                Log::warning("Error al usar plantilla PDF #{$template->id}, usando fallback Blade", [
+                    'error' => $e->getMessage(),
+                    'document_type' => $documentType->value,
+                ]);
+            }
+        }
+
+        // Fallback a generación desde Blade
+        Log::debug("Generando {$documentType->value} con Blade (sin plantilla PDF)");
+        return $fallbackGenerator($documentPack->toTemplateData());
     }
 
     /**
@@ -151,14 +211,12 @@ class DocumentGenerationService
     }
 
     /**
-     * Obtiene los datos de dirección de una entidad
+     * Obtiene los datos de dirección de una entidad usando la relación polimórfica
      */
     protected function getAddressData($entity): array
     {
-        $address = Address::where('addressable_type', get_class($entity))
-            ->where('addressable_id', $entity->id)
-            ->with(['municipality', 'province', 'country'])
-            ->first();
+        // Usar la relación definida en el modelo (ya cargada con eager loading)
+        $address = $entity->address;
 
         if (! $address) {
             return [];

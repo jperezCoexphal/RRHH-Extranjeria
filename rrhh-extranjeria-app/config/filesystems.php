@@ -60,6 +60,13 @@ return [
             'report' => false,
         ],
 
+        'pdf_templates' => [
+            'driver' => 'local',
+            'root' => resource_path('pdf'),
+            'throw' => false,
+            'report' => false,
+        ],
+
     ],
 
     /*

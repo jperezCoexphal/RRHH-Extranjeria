@@ -31,15 +31,26 @@ class DocumentPackDTO
         $foreigner = $this->foreigner;
         $extraData = $foreigner->extraData;
 
+        // Campos derivados de fecha de nacimiento
+        $birthdate = $foreigner->birthdate;
+
         return [
             'nombre_completo' => "{$foreigner->first_name} {$foreigner->last_name}",
             'nombre' => $foreigner->first_name ?? '',
             'apellidos' => $foreigner->last_name ?? '',
+            'primer_apellido' => $foreigner->last_name ? explode(' ', $foreigner->last_name, 2)[0] : '',
+            'segundo_apellido' => $foreigner->last_name && str_contains($foreigner->last_name, ' ') ? explode(' ', $foreigner->last_name, 2)[1] : '',
             'pasaporte' => $foreigner->passport ?? '',
             'nie' => $foreigner->nie ?? '',
+            'nie_letra_inicial' => $foreigner->nie ? mb_substr($foreigner->nie, 0, 1) : '',
+            'nie_numero' => $foreigner->nie ? mb_substr($foreigner->nie, 1, -1) : '',
+            'nie_letra_final' => $foreigner->nie ? mb_substr($foreigner->nie, -1) : '',
             'niss' => $foreigner->niss ?? '',
             'sexo' => $foreigner->gender?->value ?? '',
-            'fecha_nacimiento' => $foreigner->birthdate?->format('d/m/Y') ?? '',
+            'fecha_nacimiento' => $birthdate?->format('d/m/Y') ?? '',
+            'fecha_nacimiento_dia' => $birthdate?->format('d') ?? '',
+            'fecha_nacimiento_mes' => $birthdate?->format('m') ?? '',
+            'fecha_nacimiento_anio' => $birthdate?->format('Y') ?? '',
             'estado_civil' => $foreigner->marital_status?->value ?? '',
             'nacionalidad' => $foreigner->nationality?->country_name ?? '',
             'pais_nacimiento' => $foreigner->birthCountry?->country_name ?? '',
@@ -51,7 +62,13 @@ class DocumentPackDTO
             'tutor_nombre' => $extraData?->legal_guardian_name ?? '',
             'tutor_documento' => $extraData?->legal_guardian_identity_number ?? '',
             'tutor_titulo' => $extraData?->guardianship_title ?? '',
-            'direccion' => $this->formatAddress($this->foreignerAddress),
+            'trabajador_direccion' => $this->formatAddress($this->foreignerAddress),
+            'trabajador_direccion_calle' => $this->foreignerAddress['street_name'] ?? '',
+            'trabajador_direccion_numero' => $this->foreignerAddress['number'] ?? '',
+            'trabajador_direccion_piso_puerta' => $this->foreignerAddress['floor_door'] ?? '',
+            'trabajador_direccion_codigo_postal' => $this->foreignerAddress['postal_code'] ?? '',
+            'trabajador_direccion_municipio' => $this->foreignerAddress['municipality_name'] ?? '',
+            'trabajador_direccion_provincia' => $this->foreignerAddress['province_name'] ?? '',
         ];
     }
 
@@ -72,7 +89,13 @@ class DocumentPackDTO
             'forma_juridica' => $employer->legal_form->value,
             'email' => $employer->email ?? '',
             'telefono' => $employer->phone ?? '',
-            'direccion' => $this->formatAddress($this->employerAddress),
+            'empleador_direccion' => $this->formatAddress($this->employerAddress),
+            'empleador_direccion_calle' => $this->employerAddress['street_name'] ?? '',
+            'empleador_direccion_numero' => $this->employerAddress['number'] ?? '',
+            'empleador_direccion_piso_puerta' => $this->employerAddress['floor_door'] ?? '',
+            'empleador_direccion_codigo_postal' => $this->employerAddress['postal_code'] ?? '',
+            'empleador_direccion_municipio' => $this->employerAddress['municipality_name'] ?? '',
+            'empleador_direccion_provincia' => $this->employerAddress['province_name'] ?? '',
         ];
 
         if ($isFreelancer && $employer->freelancer) {
@@ -95,19 +118,37 @@ class DocumentPackDTO
     {
         $file = $this->inmigrationFile;
 
+        // Campos derivados de fechas
+        $startDate = $file->start_date;
+        $endDate = $file->end_date;
+
         return [
             'expediente_codigo' => $file->file_code ?? '',
             'expediente_titulo' => $file->file_title ?? '',
             'campaña' => $file->campaign ?? '',
             'tipo_solicitud' => $file->application_type?->value ?? '',
             'puesto_trabajo' => $file->job_title ?? '',
-            'fecha_inicio' => $file->start_date?->format('d/m/Y') ?? '',
-            'fecha_fin' => $file->end_date?->format('d/m/Y') ?? '',
+            'fecha_inicio' => $startDate?->format('d/m/Y') ?? '',
+            'fecha_inicio_dia' => $startDate?->format('d') ?? '',
+            'fecha_inicio_mes' => $startDate?->format('m') ?? '',
+            'fecha_inicio_anio' => $startDate?->format('Y') ?? '',
+            'fecha_fin' => $endDate?->format('d/m/Y') ?? '',
+            'fecha_fin_dia' => $endDate?->format('d') ?? '',
+            'fecha_fin_mes' => $endDate?->format('m') ?? '',
+            'fecha_fin_anio' => $endDate?->format('Y') ?? '',
             'salario' => $file->salary ? number_format($file->salary, 2, ',', '.') . ' EUR' : '',
+            'salario_numero' => $file->salary ? number_format($file->salary, 2, ',', '.') : '',
             'tipo_jornada' => $file->working_day_type?->label() ?? '',
             'horas_semanales' => $file->working_hours ?? '',
             'periodo_prueba' => $file->probation_period ? "{$file->probation_period} dias" : '',
+            'periodo_prueba_dias' => $file->probation_period ?? '',
             'direccion_trabajo' => $this->workAddress ? $this->formatAddress($this->workAddress) : '',
+            'direccion_trabajo_calle' => $this->workAddress['street_name'] ?? '',
+            'direccion_trabajo_numero' => $this->workAddress['number'] ?? '',
+            'direccion_trabajo_piso_puerta' => $this->workAddress['floor_door'] ?? '',
+            'direccion_trabajo_codigo_postal' => $this->workAddress['postal_code'] ?? '',
+            'direccion_trabajo_municipio' => $this->workAddress['municipality_name'] ?? '',
+            'direccion_trabajo_provincia' => $this->workAddress['province_name'] ?? '',
         ];
     }
 

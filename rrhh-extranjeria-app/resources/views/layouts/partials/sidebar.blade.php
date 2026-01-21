@@ -48,11 +48,19 @@
         <hr class="sidebar-divider">
         <div class="sidebar-heading">Documentos</div>
 
-        {{-- Plantillas PDF --}}
+        {{-- Plantillas PDF (AcroForms) --}}
+        <li class="nav-item">
+            <a class="nav-link {{ request()->routeIs('pdf-templates.*') ? 'active' : '' }}" href="{{ route('pdf-templates.index') }}" wire:navigate>
+                <i class="bi bi-file-earmark-pdf"></i>
+                <span class="nav-link-text">Plantillas PDF</span>
+            </a>
+        </li>
+
+        {{-- Repositorio de Archivos --}}
         <li class="nav-item">
             <a class="nav-link {{ request()->routeIs('templates.*') ? 'active' : '' }}" href="{{ route('templates.index') }}" wire:navigate>
-                <i class="bi bi-file-earmark-ruled"></i>
-                <span class="nav-link-text">Plantillas PDF</span>
+                <i class="bi bi-folder2"></i>
+                <span class="nav-link-text">Repositorio</span>
             </a>
         </li>
 
