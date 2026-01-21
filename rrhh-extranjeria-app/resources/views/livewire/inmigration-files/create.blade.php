@@ -983,7 +983,7 @@ class extends Component {
                                         {{-- Direccion del Extranjero --}}
                                         <div class="col-12">
                                             <hr class="my-2">
-                                            <h6 class="text-muted small mb-2">Direccion en Espana</h6>
+                                            <h6 class="text-muted small mb-2">Direccion en España</h6>
                                         </div>
                                         <div class="col-md-8">
                                             <label class="form-label">Calle</label>

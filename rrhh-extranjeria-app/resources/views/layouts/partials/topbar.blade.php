@@ -17,45 +17,57 @@
         <div class="dropdown">
             <button class="btn btn-link text-secondary position-relative" type="button" data-bs-toggle="dropdown">
                 <i class="bi bi-bell fs-5"></i>
-                <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
+                {{-- <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
                     3
-                </span>
+                </span> --}}
             </button>
             <ul class="dropdown-menu dropdown-menu-end shadow">
-                <li><h6 class="dropdown-header">Centro de Notificaciones</h6></li>
-                <li><hr class="dropdown-divider"></li>
                 <li>
-                    <a class="dropdown-item d-flex align-items-center" href="#">
-                        <div class="me-3">
-                            <div class="bg-primary rounded-circle p-2 text-white">
-                                <i class="bi bi-file-earmark-text"></i>
-                            </div>
-                        </div>
-                        <div>
-                            <div class="small text-gray-500">Diciembre 12, 2024</div>
-                            <span>Nuevo expediente creado</span>
-                        </div>
-                    </a>
+                    <h6 class="dropdown-header">Centro de Notificaciones</h6>
+                </li>
+                <li>
+                    <hr class="dropdown-divider">
                 </li>
                 <li>
                     <a class="dropdown-item d-flex align-items-center" href="#">
+                        {{-- <div class="me-3">
+                            <div class="bg-primary rounded-5 p-2 text-white">
+                                <i class="bi bi-file-earmark-text"></i>
+                            </div>
+                        </div> --}}
+                        {{-- <div>
+                            <div class="small text-gray-500">Diciembre 12, 2024</div>
+                            <span>Nuevo expediente creado</span>
+                        </div> --}}
+                    </a>
+                </li>
+                <li>
+                    <a class="dropdown-item text-center small text-gray-500" href="#">
+                        Proximanente...
+                    </a>
+                </li>
+                {{-- <li>
+                    <a class="dropdown-item d-flex align-items-center" href="#">
                         <div class="me-3">
-                            <div class="bg-success rounded-circle p-2 text-white">
+                            <div class="bg-success rounded-5 p-2 text-white">
                                 <i class="bi bi-check-lg"></i>
                             </div>
                         </div>
-                        <div>
-                            <div class="small text-gray-500">Diciembre 11, 2024</div>
-                            <span>Expediente EX-001 aprobado</span>
-                        </div>
-                    </a>
-                </li>
-                <li><hr class="dropdown-divider"></li>
                 <li>
                     <a class="dropdown-item text-center small text-gray-500" href="#">
                         Ver todas las notificaciones
                     </a>
-                </li>
+                </li> --}}
+                {{-- <div>
+                    <div class="small text-gray-500">Diciembre 11, 2024</div>
+                    <span>Expediente EX-001 aprobado</span>
+                </div> --}}
+                {{-- </a> --}}
+                {{-- </li>
+                <li>
+                    <hr class="dropdown-divider">
+                </li> --}}
+
             </ul>
         </div>
 
@@ -63,18 +75,28 @@
         <div class="dropdown">
             <button class="btn btn-link text-secondary position-relative" type="button" data-bs-toggle="dropdown">
                 <i class="bi bi-envelope fs-5"></i>
-                <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-warning text-dark">
+                {{-- <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-warning text-dark">
                     7
-                </span>
+                </span> --}}
             </button>
             <ul class="dropdown-menu dropdown-menu-end shadow">
-                <li><h6 class="dropdown-header">Centro de Mensajes</h6></li>
-                <li><hr class="dropdown-divider"></li>
                 <li>
+                    <h6 class="dropdown-header">Centro de Mensajes</h6>
+                </li>
+                <li>
+                    <hr class="dropdown-divider">
+                </li>
+                <li>
+                    <a class="dropdown-item text-center small text-gray-500" href="#">
+                        Proximamente...
+                    </a>
+                </li>
+
+                {{-- <li>
                     <a class="dropdown-item text-center small text-gray-500" href="#">
                         Ver todos los mensajes
                     </a>
-                </li>
+                </li> --}}
             </ul>
         </div>
 
@@ -85,14 +107,14 @@
             <a class="dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
                 <span class="d-none d-lg-inline me-2">
                     @auth
-                        {{ auth()->user()->first_name ?? auth()->user()->name ?? 'Usuario' }}
+                        {{ auth()->user()->first_name ?? (auth()->user()->name ?? 'Usuario') }}
                     @else
                         Invitado
                     @endauth
                 </span>
                 <div class="user-avatar">
                     @auth
-                        {{ strtoupper(substr(auth()->user()->first_name ?? auth()->user()->name ?? 'U', 0, 1)) }}
+                        {{ strtoupper(substr(auth()->user()->first_name ?? (auth()->user()->name ?? 'U'), 0, 1)) }}
                     @else
                         <i class="bi bi-person"></i>
                     @endauth
@@ -117,7 +139,9 @@
                         Registro de Actividad
                     </a>
                 </li>
-                <li><hr class="dropdown-divider"></li>
+                <li>
+                    <hr class="dropdown-divider">
+                </li>
                 <li>
                     <a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#logoutModal">
                         <i class="bi bi-box-arrow-right me-2 text-gray-400"></i>
