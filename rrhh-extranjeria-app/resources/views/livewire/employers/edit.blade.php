@@ -4,6 +4,7 @@ use App\Models\Employer;
 use App\Models\Country;
 use App\Models\Province;
 use App\Models\Municipality;
+use App\Enums\Cnae;
 use App\Enums\LegalForm;
 use App\Services\EmployerService;
 use Livewire\Volt\Component;
@@ -60,7 +61,7 @@ class extends Component {
         $this->fiscal_name = $this->employer->fiscal_name ?? '';
         $this->nif = $this->employer->nif;
         $this->ccc = $this->employer->ccc ?? '';
-        $this->cnae = $this->employer->cnae ?? '';
+        $this->cnae = $this->employer->cnae?->value ?? '';
         $this->email = $this->employer->email ?? '';
         $this->phone = $this->employer->phone ?? '';
         $this->is_associated = $this->employer->is_associated;
@@ -172,6 +173,7 @@ class extends Component {
     {
         return [
             'legalForms' => LegalForm::cases(),
+            'cnaeCodes' => Cnae::cases(),
             'countries' => Country::orderBy('country_name')->get(),
         ];
     }
@@ -239,7 +241,12 @@ class extends Component {
                             </div>
                             <div class="col-md-4">
                                 <label class="form-label">CNAE</label>
-                                <input type="text" wire:model="cnae" class="form-control @error('cnae') is-invalid @enderror">
+                                <select wire:model="cnae" class="form-select @error('cnae') is-invalid @enderror">
+                                    <option value="">Seleccionar...</option>
+                                    @foreach($cnaeCodes as $code)
+                                        <option value="{{ $code->value }}">{{ $code->value }} - {{ $code->label() }}</option>
+                                    @endforeach
+                                </select>
                                 @error('cnae') <div class="invalid-feedback">{{ $message }}</div> @enderror
                             </div>
                             <div class="col-md-4">

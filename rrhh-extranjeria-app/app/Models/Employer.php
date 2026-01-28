@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\Cnae;
 use App\Enums\LegalForm;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -34,6 +35,7 @@ class Employer extends Model
         // CASTS
     protected $casts = [
         'legal_form' => LegalForm::class,
+        'cnae' => Cnae::class,
         'is_associated' => 'boolean',
     ];
 

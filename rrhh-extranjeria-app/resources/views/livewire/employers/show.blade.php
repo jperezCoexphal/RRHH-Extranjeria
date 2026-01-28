@@ -96,7 +96,7 @@ class extends Component {
                         </div>
                         <div class="col-md-4">
                             <label class="form-label small text-muted mb-0">CNAE</label>
-                            <p class="mb-2">{{ $employer->cnae ?? '-' }}</p>
+                            <p class="mb-2">{{ $employer->cnae?->fullLabel() ?? '-' }}</p>
                         </div>
                         <div class="col-md-4">
                             <label class="form-label small text-muted mb-0">Tipo</label>

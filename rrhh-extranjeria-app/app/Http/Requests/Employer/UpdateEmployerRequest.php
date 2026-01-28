@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Employer;
 
+use App\Enums\Cnae;
 use App\Enums\LegalForm;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -24,7 +25,7 @@ class UpdateEmployerRequest extends FormRequest
             'fiscal_name' => ['required', 'string', 'max:100', Rule::unique('employers')->ignore($employerId)],
             'nif' => ['required', 'string', 'size:9', Rule::unique('employers')->ignore($employerId)],
             'ccc' => ['required', 'string', 'size:11'],
-            'cnae' => ['required', 'string', 'size:5'],
+            'cnae' => ['nullable', Rule::enum(Cnae::class)],
             'is_associated' => ['required', 'boolean'],
             'comercial_name' => ['nullable', 'string', 'max:100'],
             'email' => ['nullable', 'email', 'max:255', Rule::unique('employers')->ignore($employerId)],
@@ -56,8 +57,7 @@ class UpdateEmployerRequest extends FormRequest
             'nif.unique' => 'Este NIF ya está registrado.',
             'ccc.required' => 'El CCC es obligatorio.',
             'ccc.size' => 'El CCC debe tener exactamente 11 caracteres.',
-            'cnae.required' => 'El CNAE es obligatorio.',
-            'cnae.size' => 'El CNAE debe tener exactamente 5 caracteres.',
+            'cnae.enum' => 'El CNAE seleccionado no es válido.',
             'email.email' => 'El email debe ser una dirección válida.',
             'email.unique' => 'Este email ya está registrado.',
             'niss.size' => 'El NISS debe tener exactamente 12 caracteres.',

@@ -5,6 +5,7 @@ namespace App\Services;
 use App\DTOs\PdfFieldDTO;
 use App\DTOs\PdfTemplateDTO;
 use App\Enums\ApplicationType;
+use App\Enums\Cnae;
 use App\Enums\Gender;
 use App\Enums\LegalForm;
 use App\Enums\MaritalStatus;
@@ -273,8 +274,8 @@ class PdfTemplateService
                     'lugar_nacimiento' => 'Lugar de nacimiento',
                     'nombre_padre' => 'Nombre del padre',
                     'nombre_madre' => 'Nombre de la madre',
-                    'telefono' => 'Teléfono',
-                    'email' => 'Email',
+                    'trabajador_telefono' => 'Teléfono',
+                    'trabajador_email' => 'Email',
                     'tutor_nombre' => 'Nombre del tutor',
                     'tutor_documento' => 'Documento del tutor',
                     'tutor_titulo' => 'Título del tutor',
@@ -294,13 +295,17 @@ class PdfTemplateService
                     'nombre_comercial' => 'Nombre comercial',
                     'nif' => 'NIF/CIF',
                     'ccc' => 'Código Cuenta Cotización',
-                    'cnae' => 'CNAE',
+                    'cnae' => [
+                        'label' => 'CNAE (código)',
+                        'options' => array_column(Cnae::cases(), 'value'),
+                    ],
+                    'cnae_actividad' => 'CNAE (actividad/descripción)',
                     'forma_juridica' => [
                         'label' => 'Forma jurídica',
                         'options' => array_column(LegalForm::cases(), 'value'),
                     ],
-                    'email' => 'Email',
-                    'telefono' => 'Teléfono',
+                    'empleador_email' => 'Email',
+                    'empleador_telefono' => 'Teléfono',
                     'empleador_direccion' => 'Dirección completa',
                     'empleador_direccion_calle' => 'Dirección - Calle',
                     'empleador_direccion_numero' => 'Dirección - Número',

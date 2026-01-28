@@ -264,10 +264,14 @@ class extends Component {
                                             </td>
                                             <td>
                                                 @if($isMapped)
+                                                    @php
+                                                        $fieldDef = $dataSources[$mapping['source']]['fields'][$mapping['field']] ?? $mapping['field'];
+                                                        $fieldLabel = is_array($fieldDef) ? ($fieldDef['label'] ?? $mapping['field']) : $fieldDef;
+                                                    @endphp
                                                     <span class="text-success">
                                                         <i class="bi bi-arrow-right me-1"></i>
                                                         {{ $dataSources[$mapping['source']]['label'] ?? $mapping['source'] }}:
-                                                        <strong>{{ $dataSources[$mapping['source']]['fields'][$mapping['field']] ?? $mapping['field'] }}</strong>
+                                                        <strong>{{ $fieldLabel }}</strong>
                                                     </span>
                                                 @else
                                                     <span class="text-muted">Sin mapear</span>

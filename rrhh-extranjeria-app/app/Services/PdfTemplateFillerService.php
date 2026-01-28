@@ -67,8 +67,12 @@ class PdfTemplateFillerService
         $fieldMapping = $template->field_mapping ?? [];
         $templateData = $data->toTemplateData();
         $fieldValues = [];
-        
-        
+
+        // Indexar campos extraídos por nombre para obtener opciones de checkbox
+        $extractedFieldsByName = [];
+        foreach ($template->extracted_fields ?? [] as $ef) {
+            $extractedFieldsByName[$ef['name']] = $ef;
+        }
 
         foreach ($fieldMapping as $pdfFieldName => $mapping) {
             if (empty($mapping['field'])) {
@@ -89,28 +93,28 @@ class PdfTemplateFillerService
 
             // Manejar checkboxes con condición "checked_when"
             if (isset($mapping['type']) && $mapping['type'] === 'checkbox') {
-                
+                // Determinar el export value real del checkbox desde los campos extraídos
+                $checkedValue = $mapping['checked_value']
+                    ?? $this->getCheckboxExportValue($extractedFieldsByName[$pdfFieldName] ?? null)
+                    ?? 'Yes';
+
                 if (isset($mapping['checked_when']) && $mapping['checked_when'] !== '') {
                     // Checkbox condicional: marcar solo si el valor coincide
                     $isChecked = (string) $value === (string) $mapping['checked_when'];
-                    $value = $isChecked ? ($mapping['checked_value'] ?? 'Yes') : 'Off';
-                    
-                    // if($value!== "Off"){
-                    //     dd($isChecked);
-                    // }
-
+                    $value = $isChecked ? $checkedValue : 'Off';
                 } else {
                     // Checkbox simple: interpretar valor booleano
-                    $value = $this->formatCheckboxValue($value, $mapping['checked_value'] ?? 'Yes');
+                    $value = $this->formatCheckboxValue($value, $checkedValue);
                 }
             }
 
             if ($value !== null) {
-                $fieldValues[$pdfFieldName] = $value;
+                $fieldValues[$pdfFieldName] = [
+                    'value' => $value,
+                    'is_checkbox' => isset($mapping['type']) && $mapping['type'] === 'checkbox',
+                ];
             }
         }
-
-        dd($fieldValues);
 
         return $fieldValues;
     }
@@ -170,6 +174,25 @@ class PdfTemplateFillerService
     }
 
     /**
+     * Obtiene el export value de un checkbox desde sus opciones extraídas del PDF.
+     * El export value es la opción que no es 'Off'.
+     */
+    protected function getCheckboxExportValue(?array $extractedField): ?string
+    {
+        if (!$extractedField || empty($extractedField['options'])) {
+            return null;
+        }
+
+        foreach ($extractedField['options'] as $option) {
+            if ($option !== 'Off') {
+                return $option;
+            }
+        }
+
+        return null;
+    }
+
+    /**
      * Formatea un valor para checkbox de PDF
      */
     protected function formatCheckboxValue(mixed $value, string $checkedValue): string
@@ -202,7 +225,6 @@ class PdfTemplateFillerService
                 $fdfPath,
                 'output',
                 $outputPath,
-                'flatten',
             ]);
 
             $process->setTimeout(120);
@@ -245,13 +267,22 @@ class PdfTemplateFillerService
         $fdf .= "<<\n";
         $fdf .= "/Fields [\n";
 
-        foreach ($fieldValues as $fieldName => $value) {
+        foreach ($fieldValues as $fieldName => $fieldData) {
+            $value = is_array($fieldData) ? $fieldData['value'] : $fieldData;
+            $isCheckbox = is_array($fieldData) && ($fieldData['is_checkbox'] ?? false);
             $escapedName = $this->escapeFdfString($fieldName);
-            $escapedValue = $this->escapeFdfString($value);
 
             $fdf .= "<<\n";
             $fdf .= "/T ({$escapedName})\n";
-            $fdf .= "/V ({$escapedValue})\n";
+
+            if ($isCheckbox) {
+                // Checkboxes usan name tokens: /V /Yes o /V /Off
+                $fdf .= "/V /{$value}\n";
+            } else {
+                $escapedValue = $this->escapeFdfString($value);
+                $fdf .= "/V ({$escapedValue})\n";
+            }
+
             $fdf .= ">>\n";
         }
 
