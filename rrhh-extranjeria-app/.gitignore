@@ -12,7 +12,7 @@ claude_output*
 .env.backup
 .env.production
 .phpactor.json
-.phpunit.result.cache
+.phpunit.result.cacheDDDDDDDDDDD<
 /.fleet
 /.idea
 /.nova

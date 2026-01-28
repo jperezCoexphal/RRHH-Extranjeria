@@ -106,6 +106,8 @@ class DocumentGenerationService
     {
         $inmigrationFile = $this->inmigrationFileRepository->findByIdWithRelations($inmigrationFileId);
 
+        
+
         if (! $inmigrationFile) {
             throw DocumentGenerationException::fileNotFound($inmigrationFileId);
         }
@@ -116,9 +118,11 @@ class DocumentGenerationService
 
         $documentPack = $this->buildDocumentPackDTO($inmigrationFile, $representative);
 
+        
         $fileCode = $this->sanitizeFileCode($inmigrationFile->file_code);
         $applicationType = $inmigrationFile->application_type?->value ?? 'EX';
 
+        
         return [
             'file_code' => $inmigrationFile->file_code,
             'filename' => "{$fileCode}_{$applicationType}.pdf",
@@ -146,6 +150,8 @@ class DocumentGenerationService
         // Buscar plantilla predeterminada para el tipo de documento
         $applicationType = $documentPack->inmigrationFile->application_type;
         $template = $this->pdfTemplateRepository->getDefaultTemplate($documentType, $applicationType);
+
+        
 
         // Si hay plantilla activa con archivo y mapeo, usar el filler
         if ($template && $template->is_active && $template->file_exists && $template->mapped_fields_count > 0) {

@@ -67,6 +67,8 @@ class PdfTemplateFillerService
         $fieldMapping = $template->field_mapping ?? [];
         $templateData = $data->toTemplateData();
         $fieldValues = [];
+        
+        
 
         foreach ($fieldMapping as $pdfFieldName => $mapping) {
             if (empty($mapping['field'])) {
@@ -87,10 +89,16 @@ class PdfTemplateFillerService
 
             // Manejar checkboxes con condición "checked_when"
             if (isset($mapping['type']) && $mapping['type'] === 'checkbox') {
+                
                 if (isset($mapping['checked_when']) && $mapping['checked_when'] !== '') {
                     // Checkbox condicional: marcar solo si el valor coincide
                     $isChecked = (string) $value === (string) $mapping['checked_when'];
                     $value = $isChecked ? ($mapping['checked_value'] ?? 'Yes') : 'Off';
+                    
+                    // if($value!== "Off"){
+                    //     dd($isChecked);
+                    // }
+
                 } else {
                     // Checkbox simple: interpretar valor booleano
                     $value = $this->formatCheckboxValue($value, $mapping['checked_value'] ?? 'Yes');
@@ -101,6 +109,8 @@ class PdfTemplateFillerService
                 $fieldValues[$pdfFieldName] = $value;
             }
         }
+
+        dd($fieldValues);
 
         return $fieldValues;
     }

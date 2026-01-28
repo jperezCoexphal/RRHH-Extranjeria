@@ -452,7 +452,7 @@ class extends Component {
                                                                 class="form-select form-select-sm">
                                                             <option value="">Seleccionar...</option>
                                                             @foreach($dataSources[$fieldMapping[$field['name']]['source']]['fields'] ?? [] as $fieldKey => $fieldLabel)
-                                                                <option value="{{ $fieldKey }}">{{ $fieldLabel }}</option>
+                                                                <option value="{{ $fieldKey }}">{{ is_array($fieldLabel) ? $fieldLabel['label'] : $fieldLabel }}</option>
                                                             @endforeach
                                                         </select>
                                                     @else
@@ -461,11 +461,29 @@ class extends Component {
                                                 </td>
                                                 <td>
                                                     @if($isCheckbox && ($fieldMapping[$field['name']]['field'] ?? false))
-                                                        <input type="text"
-                                                               wire:model.blur="fieldMapping.{{ $field['name'] }}.checked_when"
-                                                               class="form-control form-control-sm"
-                                                               placeholder="Valor para marcar"
-                                                               title="Marcar cuando el valor sea igual a...">
+                                                        @php
+                                                            $mappedSource = $fieldMapping[$field['name']]['source'] ?? '';
+                                                            $mappedField = $fieldMapping[$field['name']]['field'] ?? '';
+                                                            $fieldDef = $dataSources[$mappedSource]['fields'][$mappedField] ?? null;
+                                                            $enumOptions = is_array($fieldDef) ? ($fieldDef['options'] ?? []) : [];
+                                                        @endphp
+
+                                                        @if(count($enumOptions) > 0)
+                                                            <select wire:model.blur="fieldMapping.{{ $field['name'] }}.checked_when"
+                                                                    class="form-select form-select-sm"
+                                                                    title="Marcar cuando el valor sea igual a...">
+                                                                <option value="">Seleccionar valor...</option>
+                                                                @foreach($enumOptions as $opt)
+                                                                    <option value="{{ $opt }}">{{ $opt }}</option>
+                                                                @endforeach
+                                                            </select>
+                                                        @else
+                                                            <input type="text"
+                                                                   wire:model.blur="fieldMapping.{{ $field['name'] }}.checked_when"
+                                                                   class="form-control form-control-sm"
+                                                                   placeholder="Valor para marcar"
+                                                                   title="Marcar cuando el valor sea igual a...">
+                                                        @endif
                                                     @elseif($isCheckbox)
                                                         <span class="text-muted small">-</span>
                                                     @else

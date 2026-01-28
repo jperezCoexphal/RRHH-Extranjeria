@@ -5,7 +5,11 @@ namespace App\Services;
 use App\DTOs\PdfFieldDTO;
 use App\DTOs\PdfTemplateDTO;
 use App\Enums\ApplicationType;
+use App\Enums\Gender;
+use App\Enums\LegalForm;
+use App\Enums\MaritalStatus;
 use App\Enums\PdfTemplateType;
+use App\Enums\WorkingDayType;
 use App\Exceptions\PdfExtractionException;
 use App\Models\PdfTemplate;
 use App\Repositories\Contracts\PdfTemplateRepository;
@@ -252,12 +256,18 @@ class PdfTemplateService
                     'nie_numero' => 'NIE - Número (sin letras)',
                     'nie_letra_final' => 'NIE - Letra final',
                     'niss' => 'NISS',
-                    'sexo' => 'Sexo',
+                    'sexo' => [
+                        'label' => 'Sexo',
+                        'options' => array_column(Gender::cases(), 'value'),
+                    ],
                     'fecha_nacimiento' => 'Fecha de nacimiento (dd/mm/yyyy)',
                     'fecha_nacimiento_dia' => 'Fecha nacimiento - Día',
                     'fecha_nacimiento_mes' => 'Fecha nacimiento - Mes',
                     'fecha_nacimiento_anio' => 'Fecha nacimiento - Año',
-                    'estado_civil' => 'Estado civil',
+                    'estado_civil' => [
+                        'label' => 'Estado civil',
+                        'options' => array_column(MaritalStatus::cases(), 'value'),
+                    ],
                     'nacionalidad' => 'Nacionalidad',
                     'pais_nacimiento' => 'País de nacimiento',
                     'lugar_nacimiento' => 'Lugar de nacimiento',
@@ -285,7 +295,10 @@ class PdfTemplateService
                     'nif' => 'NIF/CIF',
                     'ccc' => 'Código Cuenta Cotización',
                     'cnae' => 'CNAE',
-                    'forma_juridica' => 'Forma jurídica',
+                    'forma_juridica' => [
+                        'label' => 'Forma jurídica',
+                        'options' => array_column(LegalForm::cases(), 'value'),
+                    ],
                     'email' => 'Email',
                     'telefono' => 'Teléfono',
                     'empleador_direccion' => 'Dirección completa',
@@ -306,7 +319,10 @@ class PdfTemplateService
                     'expediente_codigo' => 'Código de expediente',
                     'expediente_titulo' => 'Título del expediente',
                     'campaña' => 'Campaña',
-                    'tipo_solicitud' => 'Tipo de solicitud',
+                    'tipo_solicitud' => [
+                        'label' => 'Tipo de solicitud',
+                        'options' => array_column(ApplicationType::cases(), 'value'),
+                    ],
                     'puesto_trabajo' => 'Puesto de trabajo',
                     'fecha_inicio' => 'Fecha de inicio (dd/mm/yyyy)',
                     'fecha_inicio_dia' => 'Fecha inicio - Día',
@@ -318,7 +334,10 @@ class PdfTemplateService
                     'fecha_fin_anio' => 'Fecha fin - Año',
                     'salario' => 'Salario (formateado con EUR)',
                     'salario_numero' => 'Salario (solo número)',
-                    'tipo_jornada' => 'Tipo de jornada',
+                    'tipo_jornada' => [
+                        'label' => 'Tipo de jornada',
+                        'options' => array_map(fn(WorkingDayType $t) => $t->label(), WorkingDayType::cases()),
+                    ],
                     'horas_semanales' => 'Horas semanales',
                     'periodo_prueba' => 'Período de prueba (con "días")',
                     'periodo_prueba_dias' => 'Período de prueba (solo número)',

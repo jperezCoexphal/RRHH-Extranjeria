@@ -77,6 +77,7 @@ class DocumentController extends Controller
      */
     public function generateModeloEX(int $inmigrationFileId)
     {
+        
         try {
             $representative = auth()->user();
             $result = $this->documentService->generateModeloEX(
@@ -84,6 +85,7 @@ class DocumentController extends Controller
                 $representative
             );
 
+            
             return response($result['content'], 200, [
                 'Content-Type' => 'application/pdf',
                 'Content-Disposition' => 'attachment; filename="' . $result['filename'] . '"',
