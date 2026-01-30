@@ -9,6 +9,7 @@ use Livewire\Volt\Component;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
 use Livewire\WithFileUploads;
+use Illuminate\Support\Facades\Storage;
 
 new
 #[Layout('layouts.app')]
@@ -26,6 +27,8 @@ class extends Component {
     public bool $is_default = false;
     public bool $is_active = true;
     public $newFile = null;
+    public string $newFileSource = 'upload';
+    public string $newRepositoryFile = '';
 
     // Field mapping
     public array $fieldMapping = [];
@@ -75,6 +78,16 @@ class extends Component {
         ];
     }
 
+    public function updatedNewFileSource(): void
+    {
+        if ($this->newFileSource === 'repository') {
+            $this->reset('newFile');
+        } else {
+            $this->reset('newRepositoryFile');
+        }
+        $this->resetValidation(['newFile', 'newRepositoryFile']);
+    }
+
     public function setTab(string $tab): void
     {
         $this->activeTab = $tab;
@@ -93,17 +106,27 @@ class extends Component {
         $service = app(PdfTemplateService::class);
 
         try {
+            $isRepository = $this->newFileSource === 'repository' && $this->newRepositoryFile;
+
             $dto = new PdfTemplateDTO(
                 name: $this->name,
                 documentType: PdfTemplateType::from($this->document_type),
                 description: $this->description ?: null,
                 applicationType: $this->application_type ? ApplicationType::from($this->application_type) : null,
-                file: $this->newFile,
+                file: $isRepository ? null : $this->newFile,
+                originalFilename: $isRepository ? $this->newRepositoryFile : null,
+                storagePath: $isRepository ? $this->newRepositoryFile : null,
                 isDefault: $this->is_default,
                 isActive: $this->is_active,
             );
 
-            $service->update($this->pdfTemplate->id, $dto);
+            if ($isRepository) {
+                // Handle repository file change manually since update() only handles UploadedFile
+                $service->update($this->pdfTemplate->id, $dto);
+                $this->handleRepositoryFileChange($service);
+            } else {
+                $service->update($this->pdfTemplate->id, $dto);
+            }
 
             if ($this->is_default) {
                 $service->setAsDefault($this->pdfTemplate->id);
@@ -114,7 +137,7 @@ class extends Component {
             $this->extractedFields = $this->pdfTemplate->extracted_fields ?? [];
 
             // Reinitialize mappings if file changed
-            if ($this->newFile) {
+            if ($this->newFile || $isRepository) {
                 $this->fieldMapping = [];
                 foreach ($this->extractedFields as $field) {
                     $this->fieldMapping[$field['name']] = [
@@ -125,12 +148,29 @@ class extends Component {
                     ];
                 }
                 $this->newFile = null;
+                $this->newRepositoryFile = '';
+                $this->newFileSource = 'upload';
             }
 
             session()->flash('success', 'Plantilla actualizada correctamente.');
         } catch (\Exception $e) {
             session()->flash('error', 'Error al actualizar: ' . $e->getMessage());
         }
+    }
+
+    protected function handleRepositoryFileChange(PdfTemplateService $service): void
+    {
+        $filePath = Storage::disk('pdf_templates')->path($this->newRepositoryFile);
+        $extractor = app(\App\Services\PdfFieldExtractorService::class);
+        $extractedFields = $extractor->extractFields($filePath);
+
+        $this->pdfTemplate->update([
+            'storage_path' => $this->newRepositoryFile,
+            'original_filename' => $this->newRepositoryFile,
+            'extracted_fields' => array_map(fn($f) => $f->toArray(), $extractedFields),
+            'total_fields' => count($extractedFields),
+            'field_mapping' => null,
+        ]);
     }
 
     public function saveMapping(): void
@@ -190,11 +230,17 @@ class extends Component {
     {
         $service = app(PdfTemplateService::class);
 
+        $repositoryFiles = collect(Storage::disk('pdf_templates')->files())
+            ->filter(fn($f) => str_ends_with(strtolower($f), '.pdf'))
+            ->values()
+            ->toArray();
+
         return [
             'documentTypes' => PdfTemplateType::cases(),
             'applicationTypes' => ApplicationType::cases(),
             'dataSources' => $service->getAvailableDataSources(),
             'mappedCount' => count(array_filter($this->fieldMapping, fn($m) => !empty($m['field']))),
+            'repositoryFiles' => $repositoryFiles,
         ];
     }
 }; ?>
@@ -309,26 +355,56 @@ class extends Component {
                             {{-- Cambiar archivo PDF --}}
                             <div class="mb-4">
                                 <label class="form-label">Cambiar Archivo PDF</label>
-                                <input type="file"
-                                       wire:model="newFile"
-                                       class="form-control @error('newFile') is-invalid @enderror"
-                                       accept=".pdf">
-                                <small class="text-muted">
+                                <small class="d-block text-muted mb-2">
                                     Archivo actual: <strong>{{ $pdfTemplate->original_filename }}</strong>
                                     @if($pdfTemplate->file_size)
                                         ({{ $pdfTemplate->file_size }})
                                     @endif
                                 </small>
-                                @error('newFile')
-                                    <div class="invalid-feedback">{{ $message }}</div>
-                                @enderror
 
-                                <div wire:loading wire:target="newFile" class="mt-2">
-                                    <div class="spinner-border spinner-border-sm text-primary" role="status"></div>
-                                    <span class="text-muted ms-2">Subiendo...</span>
+                                {{-- Selector de origen --}}
+                                <div class="btn-group w-100 mb-2" role="group">
+                                    <input type="radio" class="btn-check" wire:model.live="newFileSource" value="upload" id="editFileSourceUpload" autocomplete="off">
+                                    <label class="btn btn-sm btn-outline-primary" for="editFileSourceUpload">
+                                        <i class="bi bi-upload me-1"></i>
+                                        Subir archivo
+                                    </label>
+
+                                    <input type="radio" class="btn-check" wire:model.live="newFileSource" value="repository" id="editFileSourceRepository" autocomplete="off">
+                                    <label class="btn btn-sm btn-outline-primary" for="editFileSourceRepository">
+                                        <i class="bi bi-folder2-open me-1"></i>
+                                        Repositorio ({{ count($repositoryFiles) }})
+                                    </label>
                                 </div>
 
-                                @if($newFile)
+                                @if($newFileSource === 'upload')
+                                    <input type="file"
+                                           wire:model="newFile"
+                                           wire:key="file-upload-{{ $newFileSource }}"
+                                           class="form-control @error('newFile') is-invalid @enderror"
+                                           accept=".pdf">
+                                    @error('newFile')
+                                        <div class="invalid-feedback">{{ $message }}</div>
+                                    @enderror
+
+                                    <div wire:loading wire:target="newFile" class="mt-2">
+                                        <div class="spinner-border spinner-border-sm text-primary" role="status"></div>
+                                        <span class="text-muted ms-2">Subiendo...</span>
+                                    </div>
+                                @else
+                                    <select wire:model="newRepositoryFile"
+                                            class="form-select @error('newRepositoryFile') is-invalid @enderror">
+                                        <option value="">Seleccionar archivo del repositorio...</option>
+                                        @foreach($repositoryFiles as $repoFile)
+                                            <option value="{{ $repoFile }}">{{ $repoFile }}</option>
+                                        @endforeach
+                                    </select>
+                                    @error('newRepositoryFile')
+                                        <div class="invalid-feedback">{{ $message }}</div>
+                                    @enderror
+                                @endif
+
+                                @if($newFile || $newRepositoryFile)
                                     <div class="alert alert-warning mt-2 mb-0">
                                         <i class="bi bi-exclamation-triangle me-2"></i>
                                         Al cambiar el PDF, el mapeo de campos se reiniciara.
@@ -427,7 +503,7 @@ class extends Component {
                                             @php $isCheckbox = ($field['type'] ?? 'text') === 'checkbox'; @endphp
                                             <tr wire:key="edit-mapping-{{ $index }}">
                                                 <td>
-                                                    <code class="small">{{ Str::limit($field['name'], 20) }}</code>
+                                                    <code class="small" title="{{ $field['name'] }}">{{ Str::limit($field['name'], 20) }}</code>
                                                     @if($isCheckbox)
                                                         <span class="badge bg-warning text-dark ms-1" title="Checkbox">
                                                             <i class="bi bi-check-square"></i>

@@ -52,6 +52,16 @@ class PdfTemplateService
                 $filePath = Storage::disk('pdf_templates')->path($storagePath);
                 $extractedFields = $this->fieldExtractor->extractFields($filePath);
                 $totalFields = count($extractedFields);
+            } elseif ($dto->storagePath) {
+                // Archivo del repositorio (ya existe en el disco)
+                $storagePath = $dto->storagePath;
+                $originalFilename = $dto->originalFilename ?? $dto->storagePath;
+
+                $filePath = Storage::disk('pdf_templates')->path($storagePath);
+                if (file_exists($filePath)) {
+                    $extractedFields = $this->fieldExtractor->extractFields($filePath);
+                    $totalFields = count($extractedFields);
+                }
             }
 
             // Crear la plantilla

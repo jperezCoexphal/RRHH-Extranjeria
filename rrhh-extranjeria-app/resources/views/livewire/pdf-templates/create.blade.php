@@ -27,6 +27,8 @@ class extends Component {
     public string $application_type = '';
     public bool $is_default = false;
     public $file = null;
+    public string $fileSource = 'upload'; // 'upload' or 'repository'
+    public string $repositoryFile = '';
 
     // Step 2: Extracted fields (populated after upload)
     public array $extractedFields = [];
@@ -38,14 +40,22 @@ class extends Component {
 
     public function rules(): array
     {
-        return [
+        $rules = [
             'name' => 'required|string|max:150',
             'description' => 'nullable|string|max:1000',
             'document_type' => 'required|string|in:' . implode(',', PdfTemplateType::values()),
             'application_type' => 'nullable|string',
             'is_default' => 'boolean',
-            'file' => 'required|file|mimes:pdf|max:10240', // 10MB max
+            'fileSource' => 'required|in:upload,repository',
         ];
+
+        if ($this->fileSource === 'upload') {
+            $rules['file'] = 'required|file|mimes:pdf|max:10240';
+        } else {
+            $rules['repositoryFile'] = 'required|string';
+        }
+
+        return $rules;
     }
 
     public function messages(): array
@@ -56,7 +66,19 @@ class extends Component {
             'file.required' => 'Debes seleccionar un archivo PDF.',
             'file.mimes' => 'El archivo debe ser un PDF.',
             'file.max' => 'El archivo no puede superar los 10MB.',
+            'repositoryFile.required' => 'Debes seleccionar un archivo del repositorio.',
         ];
+    }
+
+    public function updatedFileSource(): void
+    {
+        // Limpiar estado al cambiar de modo para evitar conflictos con WithFileUploads
+        if ($this->fileSource === 'repository') {
+            $this->reset('file');
+        } else {
+            $this->reset('repositoryFile');
+        }
+        $this->resetValidation(['file', 'repositoryFile']);
     }
 
     public function goToStep(int $step): void
@@ -80,11 +102,19 @@ class extends Component {
 
     protected function validateStep1(): void
     {
-        $this->validate([
+        $rules = [
             'name' => 'required|string|max:150',
             'document_type' => 'required|string|in:' . implode(',', PdfTemplateType::values()),
-            'file' => 'required|file|mimes:pdf|max:10240',
-        ]);
+            'fileSource' => 'required|in:upload,repository',
+        ];
+
+        if ($this->fileSource === 'upload') {
+            $rules['file'] = 'required|file|mimes:pdf|max:10240';
+        } else {
+            $rules['repositoryFile'] = 'required|string';
+        }
+
+        $this->validate($rules);
     }
 
     protected function extractFields(): void
@@ -93,7 +123,12 @@ class extends Component {
 
         try {
             $extractor = app(PdfFieldExtractorService::class);
-            $tempPath = $this->file->getRealPath();
+
+            if ($this->fileSource === 'repository') {
+                $tempPath = Storage::disk('pdf_templates')->path($this->repositoryFile);
+            } else {
+                $tempPath = $this->file->getRealPath();
+            }
 
             $fields = $extractor->extractFields($tempPath);
 
@@ -132,18 +167,7 @@ class extends Component {
         $service = app(PdfTemplateService::class);
 
         try {
-            $dto = new PdfTemplateDTO(
-                name: $this->name,
-                documentType: PdfTemplateType::from($this->document_type),
-                description: $this->description ?: null,
-                applicationType: $this->application_type ? ApplicationType::from($this->application_type) : null,
-                file: $this->file,
-                isDefault: $this->is_default,
-                isActive: true,
-                fieldMapping: array_filter($this->fieldMapping, fn($m) => !empty($m['field'])),
-                createdBy: auth()->id(),
-            );
-
+            $dto = $this->buildDTO(array_filter($this->fieldMapping, fn($m) => !empty($m['field'])));
             $template = $service->create($dto);
 
             session()->flash('success', 'Plantilla PDF creada correctamente.');
@@ -158,18 +182,7 @@ class extends Component {
         $service = app(PdfTemplateService::class);
 
         try {
-            $dto = new PdfTemplateDTO(
-                name: $this->name,
-                documentType: PdfTemplateType::from($this->document_type),
-                description: $this->description ?: null,
-                applicationType: $this->application_type ? ApplicationType::from($this->application_type) : null,
-                file: $this->file,
-                isDefault: $this->is_default,
-                isActive: true,
-                fieldMapping: null,
-                createdBy: auth()->id(),
-            );
-
+            $dto = $this->buildDTO(null);
             $template = $service->create($dto);
 
             session()->flash('success', 'Plantilla PDF creada. Puedes configurar el mapeo de campos mas tarde.');
@@ -179,14 +192,40 @@ class extends Component {
         }
     }
 
+    protected function buildDTO(?array $fieldMapping): PdfTemplateDTO
+    {
+        $isRepository = $this->fileSource === 'repository';
+
+        return new PdfTemplateDTO(
+            name: $this->name,
+            documentType: PdfTemplateType::from($this->document_type),
+            description: $this->description ?: null,
+            applicationType: $this->application_type ? ApplicationType::from($this->application_type) : null,
+            file: $isRepository ? null : $this->file,
+            originalFilename: $isRepository ? $this->repositoryFile : null,
+            storagePath: $isRepository ? $this->repositoryFile : null,
+            isDefault: $this->is_default,
+            isActive: true,
+            fieldMapping: $fieldMapping,
+            createdBy: auth()->id(),
+        );
+    }
+
     public function with(): array
     {
         $service = app(PdfTemplateService::class);
+
+        // Obtener PDFs disponibles en el repositorio (resources/pdf)
+        $repositoryFiles = collect(Storage::disk('pdf_templates')->files())
+            ->filter(fn($f) => str_ends_with(strtolower($f), '.pdf'))
+            ->values()
+            ->toArray();
 
         return [
             'documentTypes' => PdfTemplateType::cases(),
             'applicationTypes' => ApplicationType::cases(),
             'dataSources' => $service->getAvailableDataSources(),
+            'repositoryFiles' => $repositoryFiles,
         ];
     }
 }; ?>
@@ -314,31 +353,71 @@ class extends Component {
                                 </div>
                             </div>
 
-                            {{-- Archivo PDF --}}
+                            {{-- Origen del archivo PDF --}}
                             <div class="mb-4">
                                 <label class="form-label">Archivo PDF <span class="text-danger">*</span></label>
-                                <input type="file"
-                                       wire:model="file"
-                                       class="form-control @error('file') is-invalid @enderror"
-                                       accept=".pdf">
-                                <small class="text-muted">PDF editable con campos de formulario (AcroForm). Maximo 10MB.</small>
-                                @error('file')
-                                    <div class="invalid-feedback">{{ $message }}</div>
-                                @enderror
 
-                                <div wire:loading wire:target="file" class="mt-2">
-                                    <div class="spinner-border spinner-border-sm text-primary" role="status">
-                                        <span class="visually-hidden">Cargando...</span>
-                                    </div>
-                                    <span class="text-muted ms-2">Subiendo archivo...</span>
+                                {{-- Selector de origen --}}
+                                <div class="btn-group w-100 mb-3" role="group">
+                                    <input type="radio" class="btn-check" wire:model.live="fileSource" value="upload" id="fileSourceUpload" autocomplete="off">
+                                    <label class="btn btn-outline-primary" for="fileSourceUpload">
+                                        <i class="bi bi-upload me-1"></i>
+                                        Subir archivo
+                                    </label>
+
+                                    <input type="radio" class="btn-check" wire:model.live="fileSource" value="repository" id="fileSourceRepository" autocomplete="off">
+                                    <label class="btn btn-outline-primary" for="fileSourceRepository">
+                                        <i class="bi bi-folder2-open me-1"></i>
+                                        Repositorio ({{ count($repositoryFiles) }})
+                                    </label>
                                 </div>
 
-                                @if($file)
-                                    <div class="mt-2 p-2 bg-light rounded">
-                                        <i class="bi bi-file-earmark-pdf text-danger me-2"></i>
-                                        <span>{{ $file->getClientOriginalName() }}</span>
-                                        <span class="text-muted ms-2">({{ number_format($file->getSize() / 1024, 2) }} KB)</span>
+                                @if($fileSource === 'upload')
+                                    {{-- Subir archivo nuevo --}}
+                                    <input type="file"
+                                           wire:model="file"
+                                           wire:key="file-upload-{{ $fileSource }}"
+                                           class="form-control @error('file') is-invalid @enderror"
+                                           accept=".pdf">
+                                    <small class="text-muted">PDF editable con campos de formulario (AcroForm). Maximo 10MB.</small>
+                                    @error('file')
+                                        <div class="invalid-feedback">{{ $message }}</div>
+                                    @enderror
+
+                                    <div wire:loading wire:target="file" class="mt-2">
+                                        <div class="spinner-border spinner-border-sm text-primary" role="status">
+                                            <span class="visually-hidden">Cargando...</span>
+                                        </div>
+                                        <span class="text-muted ms-2">Subiendo archivo...</span>
                                     </div>
+
+                                    @if($file)
+                                        <div class="mt-2 p-2 bg-light rounded">
+                                            <i class="bi bi-file-earmark-pdf text-danger me-2"></i>
+                                            <span>{{ $file->getClientOriginalName() }}</span>
+                                            <span class="text-muted ms-2">({{ number_format($file->getSize() / 1024, 2) }} KB)</span>
+                                        </div>
+                                    @endif
+                                @else
+                                    {{-- Seleccionar del repositorio --}}
+                                    <select wire:model="repositoryFile"
+                                            class="form-select @error('repositoryFile') is-invalid @enderror">
+                                        <option value="">Seleccionar archivo del repositorio...</option>
+                                        @foreach($repositoryFiles as $repoFile)
+                                            <option value="{{ $repoFile }}">{{ $repoFile }}</option>
+                                        @endforeach
+                                    </select>
+                                    <small class="text-muted">Archivos PDF disponibles en el repositorio del sistema.</small>
+                                    @error('repositoryFile')
+                                        <div class="invalid-feedback">{{ $message }}</div>
+                                    @enderror
+
+                                    @if($repositoryFile)
+                                        <div class="mt-2 p-2 bg-light rounded">
+                                            <i class="bi bi-file-earmark-pdf text-danger me-2"></i>
+                                            <span>{{ $repositoryFile }}</span>
+                                        </div>
+                                    @endif
                                 @endif
                             </div>
 
@@ -512,7 +591,7 @@ class extends Component {
                                         @php $isCheckbox = ($field['type'] ?? 'text') === 'checkbox'; @endphp
                                         <tr wire:key="mapping-{{ $index }}">
                                             <td>
-                                                <code class="small">{{ Str::limit($field['name'], 18) }}</code>
+                                                <code class="small" title="{{ $field['name'] }}">{{ Str::limit($field['name'], 18) }}</code>
                                                 @if($isCheckbox)
                                                     <span class="badge bg-warning text-dark ms-1" title="Checkbox">
                                                         <i class="bi bi-check-square"></i>
@@ -641,7 +720,7 @@ class extends Component {
             </div>
 
             {{-- Current File Info --}}
-            @if($file)
+            @if($file || $repositoryFile)
                 <div class="card">
                     <div class="card-header">
                         <h6 class="m-0">
@@ -650,10 +729,16 @@ class extends Component {
                         </h6>
                     </div>
                     <div class="card-body">
-                        <p class="mb-2"><strong>{{ $file->getClientOriginalName() }}</strong></p>
-                        <p class="small text-muted mb-0">
-                            Tamaño: {{ number_format($file->getSize() / 1024, 2) }} KB
-                        </p>
+                        @if($fileSource === 'upload' && $file)
+                            <p class="mb-2"><strong>{{ $file->getClientOriginalName() }}</strong></p>
+                            <p class="small text-muted mb-1">
+                                Tamaño: {{ number_format($file->getSize() / 1024, 2) }} KB
+                            </p>
+                            <span class="badge bg-info">Archivo subido</span>
+                        @elseif($fileSource === 'repository' && $repositoryFile)
+                            <p class="mb-2"><strong>{{ $repositoryFile }}</strong></p>
+                            <span class="badge bg-secondary">Repositorio</span>
+                        @endif
                     </div>
                 </div>
             @endif

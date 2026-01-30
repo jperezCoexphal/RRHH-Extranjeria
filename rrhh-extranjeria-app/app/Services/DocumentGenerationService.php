@@ -153,8 +153,8 @@ class DocumentGenerationService
 
         
 
-        // Si hay plantilla activa con archivo y mapeo, usar el filler
-        if ($template && $template->is_active && $template->file_exists && $template->mapped_fields_count > 0) {
+        // Si hay plantilla activa con archivo, usar el filler (con o sin mapeo)
+        if ($template && $template->is_active && $template->file_exists) {
             try {
                 Log::debug("Generando {$documentType->value} con plantilla PDF #{$template->id}");
                 return $this->pdfFiller->fill($template, $documentPack);

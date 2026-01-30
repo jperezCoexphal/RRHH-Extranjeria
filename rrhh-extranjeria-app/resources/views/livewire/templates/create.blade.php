@@ -4,7 +4,7 @@ use Livewire\Volt\Component;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
 use Livewire\WithFileUploads;
-use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\Storage;
 
 new
 #[Layout('layouts.app')]
@@ -32,26 +32,12 @@ class extends Component {
             ? $this->customName . '.' . $this->uploadedFile->getClientOriginalExtension()
             : $this->uploadedFile->getClientOriginalName();
 
-        // Asegurar que el nombre es unico
-        $path = resource_path('pdf/' . $fileName);
-        if (File::exists($path)) {
+        if (Storage::disk('pdf_templates')->exists($fileName)) {
             $this->addError('uploadedFile', 'Ya existe una plantilla con ese nombre.');
             return;
         }
 
-        $this->uploadedFile->storeAs('', $fileName, [
-            'disk' => 'local',
-            'path' => resource_path('pdf'),
-        ]);
-
-        // Mover el archivo manualmente si storeAs no funciona con path absoluto
-        $tempPath = storage_path('app/' . $fileName);
-        if (File::exists($tempPath)) {
-            File::move($tempPath, $path);
-        } else {
-            // Alternativa: usar el metodo move del archivo
-            $this->uploadedFile->move(resource_path('pdf'), $fileName);
-        }
+        $this->uploadedFile->storeAs('', $fileName, 'pdf_templates');
 
         session()->flash('success', 'Plantilla creada correctamente: ' . $fileName);
         $this->redirect(route('templates.index'), navigate: true);
