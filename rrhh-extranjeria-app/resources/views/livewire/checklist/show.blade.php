@@ -25,6 +25,17 @@ class extends Component {
     public bool $newIsMandatory = false;
     public bool $showAddForm = false;
 
+    // Edicion de requisito
+    public ?int $editingRequirementId = null;
+    public string $edit_name = '';
+    public string $edit_description = '';
+    public string $edit_due_date = '';
+    public bool $edit_is_mandatory = false;
+
+    // Observacion de requisito
+    public ?int $editingObservationId = null;
+    public string $observationText = '';
+
     public function mount(int $inmigrationFileId): void
     {
         $this->file = InmigrationFile::with([
@@ -32,6 +43,12 @@ class extends Component {
             'employer',
             'foreigner'
         ])->findOrFail($inmigrationFileId);
+
+        // Asegurar que existan los requisitos para el estado actual
+        // (cubre expedientes que no pasaron por el flujo de cambio de estado)
+        $service = app(ChecklistService::class);
+        $service->ensureRequirementsForCurrentStatus($this->file->id);
+        $this->file->refresh();
 
         $this->loadSummary();
     }
@@ -160,6 +177,92 @@ class extends Component {
         } else {
             session()->flash('error', $result['message']);
         }
+    }
+
+    public function startEditingRequirement(int $requirementId): void
+    {
+        $requirement = FileRequirement::find($requirementId);
+
+        if (!$requirement || $requirement->inmigration_file_id !== $this->file->id) {
+            return;
+        }
+
+        $this->editingRequirementId = $requirementId;
+        $this->edit_name = $requirement->name;
+        $this->edit_description = $requirement->description ?? '';
+        $this->edit_due_date = $requirement->due_date?->format('Y-m-d') ?? '';
+        $this->edit_is_mandatory = $requirement->is_mandatory;
+    }
+
+    public function cancelEditingRequirement(): void
+    {
+        $this->editingRequirementId = null;
+        $this->edit_name = '';
+        $this->edit_description = '';
+        $this->edit_due_date = '';
+        $this->edit_is_mandatory = false;
+    }
+
+    public function updateRequirement(): void
+    {
+        $this->validate([
+            'edit_name' => 'required|string|max:120',
+            'edit_description' => 'nullable|string',
+            'edit_due_date' => 'nullable|date',
+        ]);
+
+        $service = app(ChecklistService::class);
+        $result = $service->updateRequirement($this->editingRequirementId, [
+            'name' => $this->edit_name,
+            'description' => $this->edit_description ?: null,
+            'due_date' => $this->edit_due_date ?: null,
+            'is_mandatory' => $this->edit_is_mandatory,
+        ]);
+
+        if ($result['success']) {
+            $this->cancelEditingRequirement();
+            $this->file->refresh();
+            $this->loadSummary();
+            session()->flash('success', $result['message']);
+        } else {
+            session()->flash('error', $result['message']);
+        }
+    }
+
+    public function startEditingObservation(int $requirementId): void
+    {
+        $requirement = FileRequirement::find($requirementId);
+
+        if (!$requirement || $requirement->inmigration_file_id !== $this->file->id) {
+            return;
+        }
+
+        $this->editingObservationId = $requirementId;
+        $this->observationText = $requirement->observation ?? '';
+    }
+
+    public function saveObservation(): void
+    {
+        $requirement = FileRequirement::find($this->editingObservationId);
+
+        if (!$requirement || $requirement->inmigration_file_id !== $this->file->id) {
+            return;
+        }
+
+        $requirement->update([
+            'observation' => $this->observationText ?: null,
+        ]);
+
+        $this->editingObservationId = null;
+        $this->observationText = '';
+        $this->file->refresh();
+        $this->loadSummary();
+    }
+
+    public function cancelEditingObservation(): void
+    {
+        $this->editingObservationId = null;
+        $this->observationText = '';
     }
 
     public function resetForm(): void
@@ -459,80 +562,130 @@ class extends Component {
                 <div class="list-group list-group-flush">
                     @forelse($this->requirements as $requirement)
                         <div class="list-group-item {{ $requirement->is_completed ? 'bg-light' : '' }}">
-                            <div class="d-flex justify-content-between align-items-start">
-                                <div class="d-flex align-items-start">
-                                    {{-- Checkbox --}}
-                                    <div class="me-3">
-                                        @if($requirement->is_completed)
-                                            <button wire:click="uncompleteRequirement({{ $requirement->id }})"
-                                                    class="btn btn-sm btn-success rounded-circle p-0"
-                                                    style="width: 28px; height: 28px;"
-                                                    title="Marcar como pendiente">
-                                                <i class="bi bi-check-lg"></i>
-                                            </button>
-                                        @else
-                                            <button wire:click="completeRequirement({{ $requirement->id }})"
-                                                    class="btn btn-sm btn-outline-secondary rounded-circle p-0"
-                                                    style="width: 28px; height: 28px;"
-                                                    title="Marcar como completado">
-                                                <i class="bi bi-circle"></i>
-                                            </button>
-                                        @endif
-                                    </div>
-
-                                    {{-- Info --}}
-                                    <div>
-                                        <div class="{{ $requirement->is_completed ? 'text-decoration-line-through text-muted' : '' }}">
-                                            <strong>{{ $requirement->name }}</strong>
-                                            @if($requirement->is_mandatory)
-                                                <span class="badge bg-danger ms-1">Obligatorio</span>
-                                            @endif
-                                            @if($requirement->requirement_template_id)
-                                                <span class="badge bg-secondary ms-1" title="Generado desde plantilla">
-                                                    <i class="bi bi-file-earmark-text"></i>
-                                                </span>
-                                            @endif
+                            @if($editingRequirementId === $requirement->id)
+                                {{-- Formulario edicion --}}
+                                <div class="p-2 bg-light rounded">
+                                    <div class="row g-2">
+                                        <div class="col-12">
+                                            <input type="text" wire:model="edit_name" class="form-control form-control-sm @error('edit_name') is-invalid @enderror" placeholder="Nombre *">
                                         </div>
-                                        @if($requirement->description)
-                                            <small class="text-muted d-block">{{ $requirement->description }}</small>
-                                        @endif
-                                        <div class="mt-1">
-                                            @if($requirement->target_entity)
-                                                <span class="badge bg-info me-1">{{ $requirement->target_entity->label() }}</span>
-                                            @endif
-                                            @if($requirement->due_date)
-                                                @php
-                                                    $isOverdue = !$requirement->is_completed && $requirement->due_date->isPast();
-                                                    $dueSoon = !$requirement->is_completed && !$isOverdue && $requirement->due_date->diffInDays(now()) <= 3;
-                                                @endphp
-                                                <span class="badge {{ $isOverdue ? 'bg-danger' : ($dueSoon ? 'bg-warning' : 'bg-secondary') }}">
-                                                    <i class="bi bi-calendar me-1"></i>
-                                                    {{ $requirement->due_date->format('d/m/Y') }}
-                                                    @if($isOverdue) (Vencido) @endif
-                                                </span>
-                                            @endif
-                                            @if($requirement->is_completed && $requirement->completed_at)
-                                                <span class="badge bg-success">
-                                                    <i class="bi bi-check me-1"></i>
-                                                    {{ $requirement->completed_at->format('d/m/Y') }}
-                                                </span>
-                                            @endif
+                                        <div class="col-md-6">
+                                            <input type="text" wire:model="edit_description" class="form-control form-control-sm" placeholder="Descripcion">
+                                        </div>
+                                        <div class="col-md-4">
+                                            <input type="date" wire:model="edit_due_date" class="form-control form-control-sm">
+                                        </div>
+                                        <div class="col-md-2 d-flex align-items-center">
+                                            <div class="form-check">
+                                                <input type="checkbox" wire:model="edit_is_mandatory" class="form-check-input" id="edit_mandatory_{{ $requirement->id }}">
+                                                <label class="form-check-label small" for="edit_mandatory_{{ $requirement->id }}">Oblig.</label>
+                                            </div>
+                                        </div>
+                                        <div class="col-12">
+                                            <button wire:click="updateRequirement" class="btn btn-sm btn-success me-1">Guardar</button>
+                                            <button wire:click="cancelEditingRequirement" class="btn btn-sm btn-outline-secondary">Cancelar</button>
                                         </div>
                                     </div>
                                 </div>
+                            @else
+                                <div class="d-flex justify-content-between align-items-start">
+                                    <div class="d-flex align-items-start">
+                                        {{-- Checkbox --}}
+                                        <div class="me-3">
+                                            @if($requirement->is_completed)
+                                                <button wire:click="uncompleteRequirement({{ $requirement->id }})"
+                                                        class="btn btn-sm btn-success rounded-circle p-0"
+                                                        style="width: 28px; height: 28px;"
+                                                        title="Marcar como pendiente">
+                                                    <i class="bi bi-check-lg"></i>
+                                                </button>
+                                            @else
+                                                <button wire:click="completeRequirement({{ $requirement->id }})"
+                                                        class="btn btn-sm btn-outline-secondary rounded-circle p-0"
+                                                        style="width: 28px; height: 28px;"
+                                                        title="Marcar como completado">
+                                                    <i class="bi bi-circle"></i>
+                                                </button>
+                                            @endif
+                                        </div>
 
-                                {{-- Acciones --}}
-                                <div>
-                                    @if(!$requirement->is_completed && !$requirement->requirement_template_id)
-                                        <button wire:click="deleteRequirement({{ $requirement->id }})"
-                                                wire:confirm="¿Eliminar este requisito?"
-                                                class="btn btn-sm btn-outline-danger"
-                                                title="Eliminar">
-                                            <i class="bi bi-trash"></i>
+                                        {{-- Info --}}
+                                        <div>
+                                            <div class="{{ $requirement->is_completed ? 'text-decoration-line-through text-muted' : '' }}">
+                                                <strong>{{ $requirement->name }}</strong>
+                                                @if($requirement->is_mandatory)
+                                                    <span class="badge bg-danger ms-1">Obligatorio</span>
+                                                @endif
+                                                @if($requirement->requirement_template_id)
+                                                    <span class="badge bg-secondary ms-1" title="Generado desde plantilla">
+                                                        <i class="bi bi-file-earmark-text"></i>
+                                                    </span>
+                                                @endif
+                                            </div>
+                                            @if($requirement->description)
+                                                <small class="text-muted d-block">{{ $requirement->description }}</small>
+                                            @endif
+                                            @if($editingObservationId === $requirement->id)
+                                                <div class="mt-1">
+                                                    <textarea wire:model="observationText" class="form-control form-control-sm" rows="2" placeholder="Escribir observacion..."></textarea>
+                                                    <div class="mt-1">
+                                                        <button wire:click="saveObservation" class="btn btn-sm btn-success me-1">Guardar</button>
+                                                        <button wire:click="cancelEditingObservation" class="btn btn-sm btn-outline-secondary">Cancelar</button>
+                                                    </div>
+                                                </div>
+                                            @elseif($requirement->observation)
+                                                <small class="d-block mt-1 fst-italic text-secondary">
+                                                    <i class="bi bi-chat-left-text-fill me-1"></i>{{ $requirement->observation }}
+                                                </small>
+                                            @endif
+                                            <div class="mt-1">
+                                                @if($requirement->target_entity)
+                                                    <span class="badge bg-info me-1">{{ $requirement->target_entity->label() }}</span>
+                                                @endif
+                                                @if($requirement->due_date)
+                                                    @php
+                                                        $isOverdue = !$requirement->is_completed && $requirement->due_date->isPast();
+                                                        $dueSoon = !$requirement->is_completed && !$isOverdue && $requirement->due_date->diffInDays(now()) <= 3;
+                                                    @endphp
+                                                    <span class="badge {{ $isOverdue ? 'bg-danger' : ($dueSoon ? 'bg-warning' : 'bg-secondary') }}">
+                                                        <i class="bi bi-calendar me-1"></i>
+                                                        {{ $requirement->due_date->format('d/m/Y') }}
+                                                        @if($isOverdue) (Vencido) @endif
+                                                    </span>
+                                                @endif
+                                                @if($requirement->is_completed && $requirement->completed_at)
+                                                    <span class="badge bg-success">
+                                                        <i class="bi bi-check me-1"></i>
+                                                        {{ $requirement->completed_at->format('d/m/Y') }}
+                                                    </span>
+                                                @endif
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {{-- Acciones --}}
+                                    <div class="d-flex gap-1">
+                                        <button wire:click="startEditingObservation({{ $requirement->id }})"
+                                                class="btn btn-sm btn-outline-info"
+                                                title="Observacion">
+                                            <i class="bi bi-chat-left-text{{ $requirement->observation ? '-fill' : '' }}"></i>
                                         </button>
-                                    @endif
+                                        @if(!$requirement->is_completed)
+                                            <button wire:click="startEditingRequirement({{ $requirement->id }})"
+                                                    class="btn btn-sm btn-outline-warning"
+                                                    title="Editar">
+                                                <i class="bi bi-pencil"></i>
+                                            </button>
+                                            <button wire:click="deleteRequirement({{ $requirement->id }})"
+                                                    wire:confirm="¿Eliminar este requisito?"
+                                                    class="btn btn-sm btn-outline-danger"
+                                                    title="Eliminar">
+                                                <i class="bi bi-trash"></i>
+                                            </button>
+                                        @endif
+                                    </div>
                                 </div>
-                            </div>
+                            @endif
                         </div>
                     @empty
                         <div class="list-group-item text-center py-5">

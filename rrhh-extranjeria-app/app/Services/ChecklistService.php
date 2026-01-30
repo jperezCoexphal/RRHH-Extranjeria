@@ -59,6 +59,27 @@ class ChecklistService
             ];
         }
 
+        // Verificar requisitos obligatorios antes de avanzar
+        // No se bloquean transiciones a BORRADOR (retroceso) ni a ARCHIVADO (cierre)
+        if ($newStatus !== ImmigrationFileStatus::BORRADOR
+            && $newStatus !== ImmigrationFileStatus::ARCHIVADO
+        ) {
+            $pendingMandatory = $inmigrationFile->requirements()
+                ->where('is_mandatory', true)
+                ->where('is_completed', false)
+                ->get();
+
+            if ($pendingMandatory->isNotEmpty()) {
+                $names = $pendingMandatory->pluck('name')->implode(', ');
+
+                return [
+                    'success' => false,
+                    'message' => "No se puede avanzar. Hay {$pendingMandatory->count()} requisito(s) obligatorio(s) pendiente(s): {$names}",
+                    'requirements_created' => [],
+                ];
+            }
+        }
+
         return DB::transaction(function () use ($inmigrationFile, $newStatus) {
             // Actualizar el estado
             $this->inmigrationFileRepository->updateStatus(
@@ -66,17 +87,21 @@ class ChecklistService
                 $newStatus
             );
 
+            // Eliminar requisitos no completados que ya no aplican al nuevo estado
+            $removedCount = $this->removeNonApplicableRequirements($inmigrationFile, $newStatus);
+
             // Generar los requisitos según las plantillas
             $createdRequirements = $this->generateRequirementsFromTemplates(
                 $inmigrationFile,
                 $newStatus
             );
 
-            Log::info('ChecklistService: Requisitos generados para expediente', [
+            Log::info('ChecklistService: Requisitos actualizados para expediente', [
                 'file_id' => $inmigrationFile->id,
                 'file_code' => $inmigrationFile->file_code,
                 'new_status' => $newStatus->value,
-                'requirements_count' => $createdRequirements->count(),
+                'requirements_created' => $createdRequirements->count(),
+                'requirements_removed' => $removedCount,
             ]);
 
             return [
@@ -138,6 +163,43 @@ class ChecklistService
 
         // Crear los requisitos en batch
         return $this->requirementRepository->createMany($dtos);
+    }
+
+    /**
+     * Elimina requisitos no completados cuyas plantillas no aplican al nuevo estado
+     */
+    protected function removeNonApplicableRequirements(
+        InmigrationFile $inmigrationFile,
+        ImmigrationFileStatus $newStatus
+    ): int {
+        // Obtener IDs de plantillas válidas para el nuevo estado
+        $validTemplates = $this->templateRepository->getTemplatesForFile(
+            $inmigrationFile->application_type,
+            $newStatus
+        );
+
+        $validTemplateIds = $validTemplates->pluck('id')->toArray();
+
+        // Eliminar requisitos no completados cuya plantilla no está en la lista válida
+        return $this->requirementRepository->deleteNonMatchingTemplateRequirements(
+            $inmigrationFile->id,
+            $validTemplateIds
+        );
+    }
+
+    /**
+     * Asegura que existan los requisitos correspondientes al estado actual del expediente
+     * Útil para expedientes que no pasaron por el flujo de cambio de estado (ej: seeders)
+     */
+    public function ensureRequirementsForCurrentStatus(int $inmigrationFileId): void
+    {
+        $inmigrationFile = $this->inmigrationFileRepository->findByIdWithRelations($inmigrationFileId);
+
+        if (! $inmigrationFile) {
+            return;
+        }
+
+        $this->generateRequirementsFromTemplates($inmigrationFile, $inmigrationFile->status);
     }
 
     /**
@@ -373,18 +435,36 @@ class ChecklistService
             ];
         }
 
-        if ($requirement->requirement_template_id !== null) {
-            return [
-                'success' => false,
-                'message' => 'No se puede eliminar un requisito generado desde plantilla',
-            ];
-        }
-
         $this->requirementRepository->delete($requirementId);
 
         return [
             'success' => true,
             'message' => 'Requisito eliminado correctamente',
+        ];
+    }
+
+    /**
+     * Actualiza un requisito existente
+     */
+    public function updateRequirement(int $requirementId, array $data): array
+    {
+        $requirement = $this->requirementRepository->findById($requirementId);
+
+        if (! $requirement) {
+            return [
+                'success' => false,
+                'message' => 'Requisito no encontrado',
+            ];
+        }
+
+        $allowedFields = ['name', 'description', 'due_date', 'is_mandatory', 'target_entity'];
+        $updateData = array_intersect_key($data, array_flip($allowedFields));
+
+        $this->requirementRepository->update($requirementId, $updateData);
+
+        return [
+            'success' => true,
+            'message' => 'Requisito actualizado correctamente',
         ];
     }
 }

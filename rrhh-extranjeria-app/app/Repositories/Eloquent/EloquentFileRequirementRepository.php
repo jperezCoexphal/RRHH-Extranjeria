@@ -128,4 +128,14 @@ class EloquentFileRequirementRepository implements FileRequirementRepository
             ->pending()
             ->doesntExist();
     }
+
+    public function deleteNonMatchingTemplateRequirements(int $inmigrationFileId, array $validTemplateIds): int
+    {
+        return $this->requirement
+            ->where('inmigration_file_id', $inmigrationFileId)
+            ->where('is_completed', false)
+            ->whereNotNull('requirement_template_id')
+            ->whereNotIn('requirement_template_id', $validTemplateIds)
+            ->delete();
+    }
 }

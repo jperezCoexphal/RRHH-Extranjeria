@@ -45,14 +45,14 @@ return new class extends Migration
         Schema::create('inmigration_files', function (Blueprint $table) {
             $table->id();
             $table->char('campaign', 9);  // Formato: 2025-2026
-            $table->string('file_code', 12)->unique('file_code_UNIQUE');
+            $table->string('file_code', 20)->unique('file_code_UNIQUE');
             $table->string('file_title', 165);
             $table->enum('application_type', ApplicationType::values());
             $table->enum('status', ImmigrationFileStatus::values())->default('borrador');
 
             // Datos laborales
-            $table->string('job_title', 50);
-            $table->date('start_date');
+            $table->string('job_title', 50)->nullable();
+            $table->date('start_date')->nullable();
             $table->date('end_date')->nullable();
             $table->decimal('salary', 10, 2)->nullable();
             $table->enum('working_day_type', WorkingDayType::values())->nullable();
@@ -61,16 +61,19 @@ return new class extends Migration
 
             // Relaciones
             $table->foreignId('editor_id')
+                ->nullable()
                 ->constrained('users')
                 ->onDelete('restrict')
                 ->onUpdate('cascade');
 
             $table->foreignId('employer_id')
+                ->nullable()
                 ->constrained('employers')
                 ->onDelete('restrict')
                 ->onUpdate('cascade');
 
             $table->foreignId('foreigner_id')
+                ->nullable()
                 ->constrained('foreigners')
                 ->onDelete('restrict')
                 ->onUpdate('cascade');

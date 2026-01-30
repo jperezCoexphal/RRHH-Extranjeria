@@ -18,23 +18,25 @@ return new class extends Migration
             $table->id();
             $table->string('first_name', 50);
             $table->string('last_name', 100);
-            $table->string('passport', 44)->unique('passport_UNIQUE');
-            $table->string('nie', 9)->unique('nie_UNIQUE');
+            $table->string('passport', 44)->unique('passport_UNIQUE')->nullable();
+            $table->string('nie', 9)->unique('nie_UNIQUE')->nullable();
             $table->string('niss', 12)->unique('niss_UNIQUE')->nullable();
-            $table->enum('gender', Gender::values());
-            $table->date('birthdate');
-            $table->enum('marital_status', MaritalStatus::values());
+            $table->enum('gender', Gender::values())->nullable();
+            $table->date('birthdate')->nullable();
+            $table->enum('marital_status', MaritalStatus::values())->nullable();
 
             // Referencias a países
             $table->foreignId('nationality_id')
+                ->nullable()
                 ->constrained('countries')
                 ->onDelete('restrict')
                 ->onUpdate('cascade');
             $table->foreignId('birth_country_id')
+                ->nullable()
                 ->constrained('countries')
                 ->onDelete('restrict')
                 ->onUpdate('cascade');
-            $table->string('birthplace_name', 255);
+            $table->string('birthplace_name', 255)->nullable();
 
             $table->softDeletes();
             $table->timestamps();

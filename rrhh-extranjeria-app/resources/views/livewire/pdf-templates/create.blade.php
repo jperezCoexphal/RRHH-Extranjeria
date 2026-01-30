@@ -711,11 +711,36 @@ class extends Component {
                     </ul>
 
                     <h6 class="fw-semibold">Mapeo de Campos</h6>
-                    <p class="text-muted mb-0">
+                    <p class="text-muted mb-3">
                         El mapeo conecta los campos del PDF con los datos del sistema
                         (trabajador, empleador, expediente). Puedes configurarlo ahora
                         o mas tarde desde la vista de edicion.
                     </p>
+
+                    <h6 class="fw-semibold">Herramientas para crear PDFs editables</h6>
+                    <p class="text-muted mb-2">
+                        Si necesitas crear o modificar un PDF para añadir campos de formulario editables (AcroForm), puedes usar estas herramientas online:
+                    </p>
+                    <ul class="text-muted mb-0">
+                        <li>
+                            <a href="https://www.sejda.com/pdf-forms" target="_blank" rel="noopener noreferrer" class="text-decoration-none">
+                                Sejda PDF Editor
+                            </a>
+                            — Permite añadir campos de texto, checkboxes y desplegables a un PDF existente.
+                        </li>
+                        <li>
+                            <a href="https://www.pdfescape.com/" target="_blank" rel="noopener noreferrer" class="text-decoration-none">
+                                PDFescape
+                            </a>
+                            — Editor gratuito para crear formularios PDF online.
+                        </li>
+                        <li>
+                            <a href="https://docfly.com/" target="_blank" rel="noopener noreferrer" class="text-decoration-none">
+                                DocFly
+                            </a>
+                            — Crea y edita formularios PDF directamente en el navegador.
+                        </li>
+                    </ul>
                 </div>
             </div>
 

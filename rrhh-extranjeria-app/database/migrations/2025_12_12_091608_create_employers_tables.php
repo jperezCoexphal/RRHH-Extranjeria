@@ -21,8 +21,8 @@ return new class extends Migration
             $table->string('comercial_name', 100)->nullable();
             $table->string('fiscal_name', 100)->unique('fiscal_name_UNIQUE');
             $table->string('nif', 9)->unique('nif_UNIQUE');
-            $table->string('ccc', 11);
-            $table->string('cnae', 5);
+            $table->string('ccc', 20)->nullable();
+            $table->string('cnae', 10)->nullable();
             $table->string('email', 255)->unique('email_UNIQUE')->nullable();
             $table->string('phone', 30)->nullable();
             $table->boolean('is_associated');

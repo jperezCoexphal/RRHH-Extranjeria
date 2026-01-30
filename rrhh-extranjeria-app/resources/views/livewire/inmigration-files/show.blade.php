@@ -27,6 +27,17 @@ class extends Component {
     public bool $req_is_mandatory = false;
     public bool $req_save_as_template = false;
 
+    // Edicion de requisito
+    public ?int $editingRequirementId = null;
+    public string $edit_name = '';
+    public string $edit_description = '';
+    public string $edit_due_date = '';
+    public bool $edit_is_mandatory = false;
+
+    // Observacion de requisito
+    public ?int $editingObservationId = null;
+    public string $observationText = '';
+
     public function mount(InmigrationFile $inmigrationFile): void
     {
         $this->file = $inmigrationFile->load([
@@ -103,6 +114,10 @@ class extends Component {
     {
         $this->addingToEntity = $entity;
         $this->resetRequirementForm();
+
+        if (!in_array($entity, $this->openSections)) {
+            $this->openSections[] = $entity;
+        }
     }
 
     public function cancelAddingRequirement(): void
@@ -166,6 +181,89 @@ class extends Component {
         }
     }
 
+    public function startEditingRequirement(int $requirementId): void
+    {
+        $requirement = FileRequirement::find($requirementId);
+
+        if (!$requirement || $requirement->inmigration_file_id !== $this->file->id) {
+            return;
+        }
+
+        $this->editingRequirementId = $requirementId;
+        $this->edit_name = $requirement->name;
+        $this->edit_description = $requirement->description ?? '';
+        $this->edit_due_date = $requirement->due_date?->format('Y-m-d') ?? '';
+        $this->edit_is_mandatory = $requirement->is_mandatory;
+    }
+
+    public function cancelEditingRequirement(): void
+    {
+        $this->editingRequirementId = null;
+        $this->edit_name = '';
+        $this->edit_description = '';
+        $this->edit_due_date = '';
+        $this->edit_is_mandatory = false;
+    }
+
+    public function updateRequirement(): void
+    {
+        $this->validate([
+            'edit_name' => 'required|string|max:255',
+            'edit_description' => 'nullable|string|max:500',
+            'edit_due_date' => 'nullable|date',
+        ]);
+
+        $checklistService = app(ChecklistService::class);
+        $result = $checklistService->updateRequirement($this->editingRequirementId, [
+            'name' => $this->edit_name,
+            'description' => $this->edit_description ?: null,
+            'due_date' => $this->edit_due_date ?: null,
+            'is_mandatory' => $this->edit_is_mandatory,
+        ]);
+
+        if ($result['success']) {
+            $this->cancelEditingRequirement();
+            $this->file->load(['requirements']);
+        } else {
+            session()->flash('error', $result['message']);
+        }
+    }
+
+    public function startEditingObservation(int $requirementId): void
+    {
+        $requirement = FileRequirement::find($requirementId);
+
+        if (!$requirement || $requirement->inmigration_file_id !== $this->file->id) {
+            return;
+        }
+
+        $this->editingObservationId = $requirementId;
+        $this->observationText = $requirement->observation ?? '';
+    }
+
+    public function saveObservation(): void
+    {
+        $requirement = FileRequirement::find($this->editingObservationId);
+
+        if (!$requirement || $requirement->inmigration_file_id !== $this->file->id) {
+            return;
+        }
+
+        $requirement->update([
+            'observation' => $this->observationText ?: null,
+        ]);
+
+        $this->editingObservationId = null;
+        $this->observationText = '';
+        $this->file->load(['requirements']);
+    }
+
+    public function cancelEditingObservation(): void
+    {
+        $this->editingObservationId = null;
+        $this->observationText = '';
+    }
+
     protected function resetRequirementForm(): void
     {
         $this->req_name = '';
@@ -218,10 +316,13 @@ class extends Component {
             ? round(($summary['completed'] / $summary['total']) * 100)
             : 0;
 
+        $hasMandatoryPending = $summary['mandatory_pending'] > 0;
+
         return [
             'availableTransitions' => $availableTransitions,
             'reqsByEntity' => $reqsByEntity,
             'summary' => $summary,
+            'hasMandatoryPending' => $hasMandatoryPending,
         ];
     }
 }; ?>
@@ -429,19 +530,66 @@ class extends Component {
                                 {{-- Lista de requisitos --}}
                                 @if($reqsByEntity['GENERAL']['items']->count() > 0)
                                     @foreach($reqsByEntity['GENERAL']['items'] as $req)
-                                        <div class="d-flex align-items-start py-1 border-bottom" wire:key="req-general-{{ $req->id }}">
-                                            <button wire:click="toggleRequirement({{ $req->id }})" class="btn btn-sm p-0 me-2">
-                                                <i class="bi bi-{{ $req->is_completed ? 'check-circle-fill text-success' : 'circle text-muted' }}"></i>
-                                            </button>
-                                            <div class="flex-grow-1 small {{ $req->is_completed ? 'text-decoration-line-through text-muted' : '' }}">
-                                                {{ $req->name }}
-                                                @if($req->is_mandatory)<span class="badge bg-danger ms-1">Oblig.</span>@else<span class="badge bg-secondary ms-1">Opcional</span>@endif
-                                                @if($req->due_date && !$req->is_completed && $req->due_date->isPast())<i class="bi bi-exclamation-triangle-fill text-danger ms-1"></i>@endif
-                                            </div>
-                                            @if(!$req->requirement_template_id && !$req->is_completed)
-                                                <button wire:click="deleteRequirement({{ $req->id }})" wire:confirm="¿Eliminar?" class="btn btn-sm p-0 text-danger">
-                                                    <i class="bi bi-trash"></i>
-                                                </button>
+                                        <div class="py-1 border-bottom" wire:key="req-general-{{ $req->id }}">
+                                            @if($editingRequirementId === $req->id)
+                                                <div class="p-2 bg-light rounded">
+                                                    <div class="row g-2">
+                                                        <div class="col-12">
+                                                            <input type="text" wire:model="edit_name" class="form-control form-control-sm @error('edit_name') is-invalid @enderror" placeholder="Nombre *">
+                                                        </div>
+                                                        <div class="col-md-6">
+                                                            <input type="text" wire:model="edit_description" class="form-control form-control-sm" placeholder="Descripcion">
+                                                        </div>
+                                                        <div class="col-md-4">
+                                                            <input type="date" wire:model="edit_due_date" class="form-control form-control-sm">
+                                                        </div>
+                                                        <div class="col-md-2 d-flex align-items-center">
+                                                            <div class="form-check">
+                                                                <input type="checkbox" wire:model="edit_is_mandatory" class="form-check-input" id="edit_mandatory_{{ $req->id }}">
+                                                                <label class="form-check-label small" for="edit_mandatory_{{ $req->id }}">Oblig.</label>
+                                                            </div>
+                                                        </div>
+                                                        <div class="col-12">
+                                                            <button wire:click="updateRequirement" class="btn btn-sm btn-success me-1">Guardar</button>
+                                                            <button wire:click="cancelEditingRequirement" class="btn btn-sm btn-outline-secondary">Cancelar</button>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            @else
+                                                <div class="d-flex align-items-start">
+                                                    <button wire:click="toggleRequirement({{ $req->id }})" class="btn btn-sm p-0 me-2">
+                                                        <i class="bi bi-{{ $req->is_completed ? 'check-circle-fill text-success' : 'circle text-muted' }}"></i>
+                                                    </button>
+                                                    <div class="flex-grow-1 small {{ $req->is_completed ? 'text-decoration-line-through text-muted' : '' }}">
+                                                        {{ $req->name }}
+                                                        @if($req->is_mandatory)<span class="badge bg-danger ms-1">Oblig.</span>@else<span class="badge bg-secondary ms-1">Opcional</span>@endif
+                                                        @if($req->due_date && !$req->is_completed && $req->due_date->isPast())<i class="bi bi-exclamation-triangle-fill text-danger ms-1"></i>@endif
+                                                    </div>
+                                                    <button wire:click="startEditingObservation({{ $req->id }})" class="btn btn-sm p-0 text-info me-1" title="Observacion">
+                                                        <i class="bi bi-chat-left-text{{ $req->observation ? '-fill' : '' }}"></i>
+                                                    </button>
+                                                    @if(!$req->is_completed)
+                                                        <button wire:click="startEditingRequirement({{ $req->id }})" class="btn btn-sm p-0 text-warning me-1" title="Editar">
+                                                            <i class="bi bi-pencil"></i>
+                                                        </button>
+                                                        <button wire:click="deleteRequirement({{ $req->id }})" wire:confirm="¿Eliminar este requisito?" class="btn btn-sm p-0 text-danger" title="Eliminar">
+                                                            <i class="bi bi-trash"></i>
+                                                        </button>
+                                                    @endif
+                                                </div>
+                                                @if($editingObservationId === $req->id)
+                                                    <div class="ms-4 mt-1">
+                                                        <textarea wire:model="observationText" class="form-control form-control-sm" rows="2" placeholder="Escribir observacion..."></textarea>
+                                                        <div class="mt-1">
+                                                            <button wire:click="saveObservation" class="btn btn-sm btn-success me-1">Guardar</button>
+                                                            <button wire:click="cancelEditingObservation" class="btn btn-sm btn-outline-secondary">Cancelar</button>
+                                                        </div>
+                                                    </div>
+                                                @elseif($req->observation)
+                                                    <div class="ms-4 mt-1">
+                                                        <small class="text-muted fst-italic"><i class="bi bi-chat-left-text me-1"></i>{{ $req->observation }}</small>
+                                                    </div>
+                                                @endif
                                             @endif
                                         </div>
                                     @endforeach
@@ -495,6 +643,133 @@ class extends Component {
                             <div class="col-md-3">
                                 <label class="form-label small text-muted mb-0">Periodo Prueba</label>
                                 <p class="mb-2">{{ $file->probation_period }} dias</p>
+                            </div>
+                        @endif
+                    </div>
+
+                    {{-- Desplegable Requisitos LABOR --}}
+                    @php $laborInfo = $getDropdownInfo($reqsByEntity['LABOR']); @endphp
+                    <div class="mt-3 border-top pt-3">
+                        <div class="d-flex justify-content-between align-items-center"
+                             wire:click="toggleSection('LABOR')"
+                             style="cursor: pointer;">
+                            <div class="d-flex align-items-center">
+                                <i class="bi bi-{{ in_array('LABOR', $openSections) ? 'chevron-down' : 'chevron-right' }} me-2"></i>
+                                <span class="fw-semibold">Requisitos Datos Laborales</span>
+                                <span class="badge {{ $laborInfo['badgeClass'] }} ms-2">{{ $laborInfo['badgeText'] }}</span>
+                                @if($reqsByEntity['LABOR']['overdue'] > 0)
+                                    <i class="bi bi-exclamation-triangle-fill text-danger ms-2"></i>
+                                @endif
+                            </div>
+                            <button wire:click.stop="startAddingRequirement('LABOR')" class="btn btn-sm btn-outline-primary py-0">
+                                <i class="bi bi-plus"></i>
+                            </button>
+                        </div>
+
+                        @if(in_array('LABOR', $openSections))
+                            <div class="mt-2">
+                                @if($addingToEntity === 'LABOR')
+                                    <div class="p-2 bg-light rounded mb-2">
+                                        <div class="row g-2">
+                                            <div class="col-12">
+                                                <input type="text" wire:model="req_name" class="form-control form-control-sm @error('req_name') is-invalid @enderror" placeholder="Nombre del requisito *">
+                                            </div>
+                                            <div class="col-md-6">
+                                                <input type="text" wire:model="req_description" class="form-control form-control-sm" placeholder="Descripcion">
+                                            </div>
+                                            <div class="col-md-4">
+                                                <input type="date" wire:model="req_due_date" class="form-control form-control-sm">
+                                            </div>
+                                            <div class="col-md-2 d-flex align-items-center">
+                                                <div class="form-check">
+                                                    <input type="checkbox" wire:model="req_is_mandatory" class="form-check-input" id="req_mandatory_labor">
+                                                    <label class="form-check-label small" for="req_mandatory_labor">Oblig.</label>
+                                                </div>
+                                            </div>
+                                            <div class="col-12">
+                                                <div class="form-check mb-2">
+                                                    <input type="checkbox" wire:model="req_save_as_template" class="form-check-input" id="req_template_labor">
+                                                    <label class="form-check-label small text-primary" for="req_template_labor">
+                                                        <i class="bi bi-bookmark-plus me-1"></i>Guardar como plantilla
+                                                    </label>
+                                                </div>
+                                            </div>
+                                            <div class="col-12">
+                                                <button wire:click="saveRequirement" class="btn btn-sm btn-success me-1">Guardar</button>
+                                                <button wire:click="cancelAddingRequirement" class="btn btn-sm btn-outline-secondary">Cancelar</button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                @endif
+
+                                @if($reqsByEntity['LABOR']['items']->count() > 0)
+                                    @foreach($reqsByEntity['LABOR']['items'] as $req)
+                                        <div class="py-1 border-bottom" wire:key="req-labor-{{ $req->id }}">
+                                            @if($editingRequirementId === $req->id)
+                                                <div class="p-2 bg-light rounded">
+                                                    <div class="row g-2">
+                                                        <div class="col-12">
+                                                            <input type="text" wire:model="edit_name" class="form-control form-control-sm @error('edit_name') is-invalid @enderror" placeholder="Nombre *">
+                                                        </div>
+                                                        <div class="col-md-6">
+                                                            <input type="text" wire:model="edit_description" class="form-control form-control-sm" placeholder="Descripcion">
+                                                        </div>
+                                                        <div class="col-md-4">
+                                                            <input type="date" wire:model="edit_due_date" class="form-control form-control-sm">
+                                                        </div>
+                                                        <div class="col-md-2 d-flex align-items-center">
+                                                            <div class="form-check">
+                                                                <input type="checkbox" wire:model="edit_is_mandatory" class="form-check-input" id="edit_mandatory_{{ $req->id }}">
+                                                                <label class="form-check-label small" for="edit_mandatory_{{ $req->id }}">Oblig.</label>
+                                                            </div>
+                                                        </div>
+                                                        <div class="col-12">
+                                                            <button wire:click="updateRequirement" class="btn btn-sm btn-success me-1">Guardar</button>
+                                                            <button wire:click="cancelEditingRequirement" class="btn btn-sm btn-outline-secondary">Cancelar</button>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            @else
+                                                <div class="d-flex align-items-start">
+                                                    <button wire:click="toggleRequirement({{ $req->id }})" class="btn btn-sm p-0 me-2">
+                                                        <i class="bi bi-{{ $req->is_completed ? 'check-circle-fill text-success' : 'circle text-muted' }}"></i>
+                                                    </button>
+                                                    <div class="flex-grow-1 small {{ $req->is_completed ? 'text-decoration-line-through text-muted' : '' }}">
+                                                        {{ $req->name }}
+                                                        @if($req->is_mandatory)<span class="badge bg-danger ms-1">Oblig.</span>@else<span class="badge bg-secondary ms-1">Opcional</span>@endif
+                                                        @if($req->due_date && !$req->is_completed && $req->due_date->isPast())<i class="bi bi-exclamation-triangle-fill text-danger ms-1"></i>@endif
+                                                    </div>
+                                                    <button wire:click="startEditingObservation({{ $req->id }})" class="btn btn-sm p-0 text-info me-1" title="Observacion">
+                                                        <i class="bi bi-chat-left-text{{ $req->observation ? '-fill' : '' }}"></i>
+                                                    </button>
+                                                    @if(!$req->is_completed)
+                                                        <button wire:click="startEditingRequirement({{ $req->id }})" class="btn btn-sm p-0 text-warning me-1" title="Editar">
+                                                            <i class="bi bi-pencil"></i>
+                                                        </button>
+                                                        <button wire:click="deleteRequirement({{ $req->id }})" wire:confirm="¿Eliminar este requisito?" class="btn btn-sm p-0 text-danger" title="Eliminar">
+                                                            <i class="bi bi-trash"></i>
+                                                        </button>
+                                                    @endif
+                                                </div>
+                                                @if($editingObservationId === $req->id)
+                                                    <div class="ms-4 mt-1">
+                                                        <textarea wire:model="observationText" class="form-control form-control-sm" rows="2" placeholder="Escribir observacion..."></textarea>
+                                                        <div class="mt-1">
+                                                            <button wire:click="saveObservation" class="btn btn-sm btn-success me-1">Guardar</button>
+                                                            <button wire:click="cancelEditingObservation" class="btn btn-sm btn-outline-secondary">Cancelar</button>
+                                                        </div>
+                                                    </div>
+                                                @elseif($req->observation)
+                                                    <div class="ms-4 mt-1">
+                                                        <small class="text-muted fst-italic"><i class="bi bi-chat-left-text me-1"></i>{{ $req->observation }}</small>
+                                                    </div>
+                                                @endif
+                                            @endif
+                                        </div>
+                                    @endforeach
+                                @else
+                                    <p class="text-muted small mb-0 mt-2">Sin requisitos de datos laborales</p>
+                                @endif
                             </div>
                         @endif
                     </div>
@@ -596,19 +871,66 @@ class extends Component {
 
                                 @if($reqsByEntity['EMPLOYER']['items']->count() > 0)
                                     @foreach($reqsByEntity['EMPLOYER']['items'] as $req)
-                                        <div class="d-flex align-items-start py-1 border-bottom" wire:key="req-employer-{{ $req->id }}">
-                                            <button wire:click="toggleRequirement({{ $req->id }})" class="btn btn-sm p-0 me-2">
-                                                <i class="bi bi-{{ $req->is_completed ? 'check-circle-fill text-success' : 'circle text-muted' }}"></i>
-                                            </button>
-                                            <div class="flex-grow-1 small {{ $req->is_completed ? 'text-decoration-line-through text-muted' : '' }}">
-                                                {{ $req->name }}
-                                                @if($req->is_mandatory)<span class="badge bg-danger ms-1">Oblig.</span>@else<span class="badge bg-secondary ms-1">Opcional</span>@endif
-                                                @if($req->due_date && !$req->is_completed && $req->due_date->isPast())<i class="bi bi-exclamation-triangle-fill text-danger ms-1"></i>@endif
-                                            </div>
-                                            @if(!$req->requirement_template_id && !$req->is_completed)
-                                                <button wire:click="deleteRequirement({{ $req->id }})" wire:confirm="¿Eliminar?" class="btn btn-sm p-0 text-danger">
-                                                    <i class="bi bi-trash"></i>
-                                                </button>
+                                        <div class="py-1 border-bottom" wire:key="req-employer-{{ $req->id }}">
+                                            @if($editingRequirementId === $req->id)
+                                                <div class="p-2 bg-light rounded">
+                                                    <div class="row g-2">
+                                                        <div class="col-12">
+                                                            <input type="text" wire:model="edit_name" class="form-control form-control-sm @error('edit_name') is-invalid @enderror" placeholder="Nombre *">
+                                                        </div>
+                                                        <div class="col-md-6">
+                                                            <input type="text" wire:model="edit_description" class="form-control form-control-sm" placeholder="Descripcion">
+                                                        </div>
+                                                        <div class="col-md-4">
+                                                            <input type="date" wire:model="edit_due_date" class="form-control form-control-sm">
+                                                        </div>
+                                                        <div class="col-md-2 d-flex align-items-center">
+                                                            <div class="form-check">
+                                                                <input type="checkbox" wire:model="edit_is_mandatory" class="form-check-input" id="edit_mandatory_{{ $req->id }}">
+                                                                <label class="form-check-label small" for="edit_mandatory_{{ $req->id }}">Oblig.</label>
+                                                            </div>
+                                                        </div>
+                                                        <div class="col-12">
+                                                            <button wire:click="updateRequirement" class="btn btn-sm btn-success me-1">Guardar</button>
+                                                            <button wire:click="cancelEditingRequirement" class="btn btn-sm btn-outline-secondary">Cancelar</button>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            @else
+                                                <div class="d-flex align-items-start">
+                                                    <button wire:click="toggleRequirement({{ $req->id }})" class="btn btn-sm p-0 me-2">
+                                                        <i class="bi bi-{{ $req->is_completed ? 'check-circle-fill text-success' : 'circle text-muted' }}"></i>
+                                                    </button>
+                                                    <div class="flex-grow-1 small {{ $req->is_completed ? 'text-decoration-line-through text-muted' : '' }}">
+                                                        {{ $req->name }}
+                                                        @if($req->is_mandatory)<span class="badge bg-danger ms-1">Oblig.</span>@else<span class="badge bg-secondary ms-1">Opcional</span>@endif
+                                                        @if($req->due_date && !$req->is_completed && $req->due_date->isPast())<i class="bi bi-exclamation-triangle-fill text-danger ms-1"></i>@endif
+                                                    </div>
+                                                    <button wire:click="startEditingObservation({{ $req->id }})" class="btn btn-sm p-0 text-info me-1" title="Observacion">
+                                                        <i class="bi bi-chat-left-text{{ $req->observation ? '-fill' : '' }}"></i>
+                                                    </button>
+                                                    @if(!$req->is_completed)
+                                                        <button wire:click="startEditingRequirement({{ $req->id }})" class="btn btn-sm p-0 text-warning me-1" title="Editar">
+                                                            <i class="bi bi-pencil"></i>
+                                                        </button>
+                                                        <button wire:click="deleteRequirement({{ $req->id }})" wire:confirm="¿Eliminar este requisito?" class="btn btn-sm p-0 text-danger" title="Eliminar">
+                                                            <i class="bi bi-trash"></i>
+                                                        </button>
+                                                    @endif
+                                                </div>
+                                                @if($editingObservationId === $req->id)
+                                                    <div class="ms-4 mt-1">
+                                                        <textarea wire:model="observationText" class="form-control form-control-sm" rows="2" placeholder="Escribir observacion..."></textarea>
+                                                        <div class="mt-1">
+                                                            <button wire:click="saveObservation" class="btn btn-sm btn-success me-1">Guardar</button>
+                                                            <button wire:click="cancelEditingObservation" class="btn btn-sm btn-outline-secondary">Cancelar</button>
+                                                        </div>
+                                                    </div>
+                                                @elseif($req->observation)
+                                                    <div class="ms-4 mt-1">
+                                                        <small class="text-muted fst-italic"><i class="bi bi-chat-left-text me-1"></i>{{ $req->observation }}</small>
+                                                    </div>
+                                                @endif
                                             @endif
                                         </div>
                                     @endforeach
@@ -716,19 +1038,66 @@ class extends Component {
 
                                 @if($reqsByEntity['WORKER']['items']->count() > 0)
                                     @foreach($reqsByEntity['WORKER']['items'] as $req)
-                                        <div class="d-flex align-items-start py-1 border-bottom" wire:key="req-worker-{{ $req->id }}">
-                                            <button wire:click="toggleRequirement({{ $req->id }})" class="btn btn-sm p-0 me-2">
-                                                <i class="bi bi-{{ $req->is_completed ? 'check-circle-fill text-success' : 'circle text-muted' }}"></i>
-                                            </button>
-                                            <div class="flex-grow-1 small {{ $req->is_completed ? 'text-decoration-line-through text-muted' : '' }}">
-                                                {{ $req->name }}
-                                                @if($req->is_mandatory)<span class="badge bg-danger ms-1">Oblig.</span>@else<span class="badge bg-secondary ms-1">Opcional</span>@endif
-                                                @if($req->due_date && !$req->is_completed && $req->due_date->isPast())<i class="bi bi-exclamation-triangle-fill text-danger ms-1"></i>@endif
-                                            </div>
-                                            @if(!$req->requirement_template_id && !$req->is_completed)
-                                                <button wire:click="deleteRequirement({{ $req->id }})" wire:confirm="¿Eliminar?" class="btn btn-sm p-0 text-danger">
-                                                    <i class="bi bi-trash"></i>
-                                                </button>
+                                        <div class="py-1 border-bottom" wire:key="req-worker-{{ $req->id }}">
+                                            @if($editingRequirementId === $req->id)
+                                                <div class="p-2 bg-light rounded">
+                                                    <div class="row g-2">
+                                                        <div class="col-12">
+                                                            <input type="text" wire:model="edit_name" class="form-control form-control-sm @error('edit_name') is-invalid @enderror" placeholder="Nombre *">
+                                                        </div>
+                                                        <div class="col-md-6">
+                                                            <input type="text" wire:model="edit_description" class="form-control form-control-sm" placeholder="Descripcion">
+                                                        </div>
+                                                        <div class="col-md-4">
+                                                            <input type="date" wire:model="edit_due_date" class="form-control form-control-sm">
+                                                        </div>
+                                                        <div class="col-md-2 d-flex align-items-center">
+                                                            <div class="form-check">
+                                                                <input type="checkbox" wire:model="edit_is_mandatory" class="form-check-input" id="edit_mandatory_{{ $req->id }}">
+                                                                <label class="form-check-label small" for="edit_mandatory_{{ $req->id }}">Oblig.</label>
+                                                            </div>
+                                                        </div>
+                                                        <div class="col-12">
+                                                            <button wire:click="updateRequirement" class="btn btn-sm btn-success me-1">Guardar</button>
+                                                            <button wire:click="cancelEditingRequirement" class="btn btn-sm btn-outline-secondary">Cancelar</button>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            @else
+                                                <div class="d-flex align-items-start">
+                                                    <button wire:click="toggleRequirement({{ $req->id }})" class="btn btn-sm p-0 me-2">
+                                                        <i class="bi bi-{{ $req->is_completed ? 'check-circle-fill text-success' : 'circle text-muted' }}"></i>
+                                                    </button>
+                                                    <div class="flex-grow-1 small {{ $req->is_completed ? 'text-decoration-line-through text-muted' : '' }}">
+                                                        {{ $req->name }}
+                                                        @if($req->is_mandatory)<span class="badge bg-danger ms-1">Oblig.</span>@else<span class="badge bg-secondary ms-1">Opcional</span>@endif
+                                                        @if($req->due_date && !$req->is_completed && $req->due_date->isPast())<i class="bi bi-exclamation-triangle-fill text-danger ms-1"></i>@endif
+                                                    </div>
+                                                    <button wire:click="startEditingObservation({{ $req->id }})" class="btn btn-sm p-0 text-info me-1" title="Observacion">
+                                                        <i class="bi bi-chat-left-text{{ $req->observation ? '-fill' : '' }}"></i>
+                                                    </button>
+                                                    @if(!$req->is_completed)
+                                                        <button wire:click="startEditingRequirement({{ $req->id }})" class="btn btn-sm p-0 text-warning me-1" title="Editar">
+                                                            <i class="bi bi-pencil"></i>
+                                                        </button>
+                                                        <button wire:click="deleteRequirement({{ $req->id }})" wire:confirm="¿Eliminar este requisito?" class="btn btn-sm p-0 text-danger" title="Eliminar">
+                                                            <i class="bi bi-trash"></i>
+                                                        </button>
+                                                    @endif
+                                                </div>
+                                                @if($editingObservationId === $req->id)
+                                                    <div class="ms-4 mt-1">
+                                                        <textarea wire:model="observationText" class="form-control form-control-sm" rows="2" placeholder="Escribir observacion..."></textarea>
+                                                        <div class="mt-1">
+                                                            <button wire:click="saveObservation" class="btn btn-sm btn-success me-1">Guardar</button>
+                                                            <button wire:click="cancelEditingObservation" class="btn btn-sm btn-outline-secondary">Cancelar</button>
+                                                        </div>
+                                                    </div>
+                                                @elseif($req->observation)
+                                                    <div class="ms-4 mt-1">
+                                                        <small class="text-muted fst-italic"><i class="bi bi-chat-left-text me-1"></i>{{ $req->observation }}</small>
+                                                    </div>
+                                                @endif
                                             @endif
                                         </div>
                                     @endforeach
@@ -837,19 +1206,66 @@ class extends Component {
 
                                 @if($reqsByEntity['REPRESENTATIVE']['items']->count() > 0)
                                     @foreach($reqsByEntity['REPRESENTATIVE']['items'] as $req)
-                                        <div class="d-flex align-items-start py-1 border-bottom" wire:key="req-rep-{{ $req->id }}">
-                                            <button wire:click="toggleRequirement({{ $req->id }})" class="btn btn-sm p-0 me-2">
-                                                <i class="bi bi-{{ $req->is_completed ? 'check-circle-fill text-success' : 'circle text-muted' }}"></i>
-                                            </button>
-                                            <div class="flex-grow-1 small {{ $req->is_completed ? 'text-decoration-line-through text-muted' : '' }}">
-                                                {{ $req->name }}
-                                                @if($req->is_mandatory)<span class="badge bg-danger ms-1">Oblig.</span>@else<span class="badge bg-secondary ms-1">Opcional</span>@endif
-                                                @if($req->due_date && !$req->is_completed && $req->due_date->isPast())<i class="bi bi-exclamation-triangle-fill text-danger ms-1"></i>@endif
-                                            </div>
-                                            @if(!$req->requirement_template_id && !$req->is_completed)
-                                                <button wire:click="deleteRequirement({{ $req->id }})" wire:confirm="¿Eliminar?" class="btn btn-sm p-0 text-danger">
-                                                    <i class="bi bi-trash"></i>
-                                                </button>
+                                        <div class="py-1 border-bottom" wire:key="req-rep-{{ $req->id }}">
+                                            @if($editingRequirementId === $req->id)
+                                                <div class="p-2 bg-light rounded">
+                                                    <div class="row g-2">
+                                                        <div class="col-12">
+                                                            <input type="text" wire:model="edit_name" class="form-control form-control-sm @error('edit_name') is-invalid @enderror" placeholder="Nombre *">
+                                                        </div>
+                                                        <div class="col-md-6">
+                                                            <input type="text" wire:model="edit_description" class="form-control form-control-sm" placeholder="Descripcion">
+                                                        </div>
+                                                        <div class="col-md-4">
+                                                            <input type="date" wire:model="edit_due_date" class="form-control form-control-sm">
+                                                        </div>
+                                                        <div class="col-md-2 d-flex align-items-center">
+                                                            <div class="form-check">
+                                                                <input type="checkbox" wire:model="edit_is_mandatory" class="form-check-input" id="edit_mandatory_{{ $req->id }}">
+                                                                <label class="form-check-label small" for="edit_mandatory_{{ $req->id }}">Oblig.</label>
+                                                            </div>
+                                                        </div>
+                                                        <div class="col-12">
+                                                            <button wire:click="updateRequirement" class="btn btn-sm btn-success me-1">Guardar</button>
+                                                            <button wire:click="cancelEditingRequirement" class="btn btn-sm btn-outline-secondary">Cancelar</button>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            @else
+                                                <div class="d-flex align-items-start">
+                                                    <button wire:click="toggleRequirement({{ $req->id }})" class="btn btn-sm p-0 me-2">
+                                                        <i class="bi bi-{{ $req->is_completed ? 'check-circle-fill text-success' : 'circle text-muted' }}"></i>
+                                                    </button>
+                                                    <div class="flex-grow-1 small {{ $req->is_completed ? 'text-decoration-line-through text-muted' : '' }}">
+                                                        {{ $req->name }}
+                                                        @if($req->is_mandatory)<span class="badge bg-danger ms-1">Oblig.</span>@else<span class="badge bg-secondary ms-1">Opcional</span>@endif
+                                                        @if($req->due_date && !$req->is_completed && $req->due_date->isPast())<i class="bi bi-exclamation-triangle-fill text-danger ms-1"></i>@endif
+                                                    </div>
+                                                    <button wire:click="startEditingObservation({{ $req->id }})" class="btn btn-sm p-0 text-info me-1" title="Observacion">
+                                                        <i class="bi bi-chat-left-text{{ $req->observation ? '-fill' : '' }}"></i>
+                                                    </button>
+                                                    @if(!$req->is_completed)
+                                                        <button wire:click="startEditingRequirement({{ $req->id }})" class="btn btn-sm p-0 text-warning me-1" title="Editar">
+                                                            <i class="bi bi-pencil"></i>
+                                                        </button>
+                                                        <button wire:click="deleteRequirement({{ $req->id }})" wire:confirm="¿Eliminar este requisito?" class="btn btn-sm p-0 text-danger" title="Eliminar">
+                                                            <i class="bi bi-trash"></i>
+                                                        </button>
+                                                    @endif
+                                                </div>
+                                                @if($editingObservationId === $req->id)
+                                                    <div class="ms-4 mt-1">
+                                                        <textarea wire:model="observationText" class="form-control form-control-sm" rows="2" placeholder="Escribir observacion..."></textarea>
+                                                        <div class="mt-1">
+                                                            <button wire:click="saveObservation" class="btn btn-sm btn-success me-1">Guardar</button>
+                                                            <button wire:click="cancelEditingObservation" class="btn btn-sm btn-outline-secondary">Cancelar</button>
+                                                        </div>
+                                                    </div>
+                                                @elseif($req->observation)
+                                                    <div class="ms-4 mt-1">
+                                                        <small class="text-muted fst-italic"><i class="bi bi-chat-left-text me-1"></i>{{ $req->observation }}</small>
+                                                    </div>
+                                                @endif
                                             @endif
                                         </div>
                                     @endforeach
@@ -890,12 +1306,28 @@ class extends Component {
                             <label class="form-label small text-muted mb-2">Cambiar a</label>
                             <div class="d-flex flex-wrap gap-2">
                                 @foreach($availableTransitions as $transition)
+                                    @php
+                                        $isExempt = in_array($transition->value, ['borrador', 'archivado']);
+                                        $blocked = $hasMandatoryPending && !$isExempt;
+                                    @endphp
                                     <button wire:click="changeStatus('{{ $transition->value }}')"
-                                            class="btn btn-sm btn-outline-{{ $statusColors[$transition->value] ?? 'secondary' }}">
+                                            class="btn btn-sm btn-outline-{{ $statusColors[$transition->value] ?? 'secondary' }} {{ $blocked ? 'opacity-50' : '' }}"
+                                            @if($blocked) title="Hay requisitos obligatorios pendientes" @endif>
                                         {{ $transition->label() }}
+                                        @if($blocked)
+                                            <i class="bi bi-lock-fill ms-1"></i>
+                                        @endif
                                     </button>
                                 @endforeach
                             </div>
+                            @if($hasMandatoryPending)
+                                <div class="mt-2">
+                                    <small class="text-danger">
+                                        <i class="bi bi-exclamation-triangle me-1"></i>
+                                        {{ $summary['mandatory_pending'] }} requisito(s) obligatorio(s) pendiente(s)
+                                    </small>
+                                </div>
+                            @endif
                         </div>
                     @else
                         <p class="text-muted small mb-3">

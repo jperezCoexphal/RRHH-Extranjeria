@@ -53,4 +53,10 @@ interface FileRequirementRepository
      * Verifica si todos los requisitos obligatorios están completados
      */
     public function allMandatoryCompleted(int $inmigrationFileId): bool;
+
+    /**
+     * Elimina requisitos no completados cuyas plantillas tienen un trigger_status
+     * que no coincide con el estado dado ni es null
+     */
+    public function deleteNonMatchingTemplateRequirements(int $inmigrationFileId, array $validTemplateIds): int;
 }

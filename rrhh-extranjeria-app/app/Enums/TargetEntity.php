@@ -11,6 +11,7 @@ enum TargetEntity: string
     case WORKER = 'WORKER';
     case EMPLOYER = 'EMPLOYER';
     case REPRESENTATIVE = 'REPRESENTATIVE';
+    case LABOR = 'LABOR';
     case GENERAL = 'GENERAL';
 
     public static function values(): array
@@ -27,6 +28,7 @@ enum TargetEntity: string
             self::WORKER => 'Trabajador',
             self::EMPLOYER => 'Empleador',
             self::REPRESENTATIVE => 'Representante Legal',
+            self::LABOR => 'Datos Laborales',
             self::GENERAL => 'General',
         };
     }
