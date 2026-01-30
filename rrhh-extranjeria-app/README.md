@@ -1,59 +1,185 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# RRHH Extranjeria
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+Sistema de gestion de expedientes de extranjeria para la tramitacion de autorizaciones de trabajo y residencia en Espana. Permite gestionar empleadores, trabajadores extranjeros, expedientes de inmigracion, generacion automatica de documentos y control de requisitos mediante checklists.
 
-## About Laravel
+## Stack Tecnologico
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+- **Backend**: Laravel 12, PHP 8.2+
+- **Frontend**: Livewire 3 / Volt, Bootstrap 5.3, SCSS
+- **Base de datos**: MySQL
+- **PDF**: pdftk (AcroForm), DomPDF (Blade fallback)
+- **Excel**: PhpSpreadsheet
+- **Build**: Vite 7
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+## Funcionalidades
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+### Gestion de Empleadores
+- CRUD completo de empleadores (personas fisicas y juridicas)
+- Soporte para autonomos (freelancers) y empresas (companies) con datos especificos
+- Filtrado por nombre, NIF, forma juridica y asociacion
+- Direccion postal con vinculacion geografica (pais, provincia, municipio)
 
-## Learning Laravel
+### Gestion de Trabajadores Extranjeros
+- CRUD completo con datos personales, documentacion (pasaporte, NIE, NISS) y datos familiares
+- Datos adicionales: padre, madre, tutor legal
+- Relaciones familiares entre extranjeros (conyuge, pareja, menores, ascendientes)
+- Filtrado por nombre, NIE, pasaporte, genero y nacionalidad
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework. You can also check out [Laravel Learn](https://laravel.com/learn), where you will be guided through building a modern Laravel application.
+### Expedientes de Inmigracion
+- Creacion y gestion de expedientes vinculando empleador + trabajador
+- 31 tipos de solicitud (modelos EX-00 a EX-30 del Ministerio del Interior)
+- Datos laborales: puesto, fechas, salario, jornada, periodo de prueba
+- Direccion del centro de trabajo (polimorfica)
+- Campanas anuales (formato 2025-2026)
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+### Maquina de Estados
+Los expedientes siguen un flujo de trabajo controlado con 8 estados:
 
-## Laravel Sponsors
+```
+Borrador -> Pendiente Revision -> Listo -> Presentado -> Favorable
+                                                      -> Denegado
+                                       -> Requerido ---^
+                                                    -> Archivado
+```
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
+- Transiciones validadas por el enum `ImmigrationFileStatus`
+- Los estados finales (Favorable, Denegado, Archivado) bloquean ediciones
+- Los requisitos obligatorios pendientes impiden avanzar de estado
 
-### Premium Partners
+### Sistema de Checklist / Requisitos
+- Plantillas de requisitos (`RequirementTemplate`) configurables por tipo de solicitud y estado
+- Generacion automatica de requisitos al cambiar de estado
+- Eliminacion automatica de requisitos no aplicables al retroceder de estado
+- Requisitos manuales ad-hoc desde el expediente o la vista de checklist
+- Cada requisito tiene: entidad objetivo, fecha limite, obligatoriedad, observaciones
+- 5 entidades objetivo: Trabajador, Empleador, Representante Legal, Datos Laborales, General
+- Edicion inline de requisitos y observaciones desde ambas vistas
+- Resumen del checklist con porcentaje de completitud
 
-- **[Vehikl](https://vehikl.com)**
-- **[Tighten Co.](https://tighten.co)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Redberry](https://redberry.international/laravel-development)**
-- **[Active Logic](https://activelogic.com)**
+### Generacion de Documentos PDF
+- Doble flujo de generacion:
+  1. **AcroForm**: relleno automatico de campos en PDFs editables via pdftk
+  2. **Blade/DomPDF**: renderizado desde plantillas Blade como fallback
+- Repositorio de PDFs oficiales (Modelo EX-03, EX-10, EX-26, Contrato, Memoria)
+- Mapeo de campos PDF a datos del sistema (expediente, trabajador, empleador, direcciones)
+- Gestion de plantillas: subida, extraccion de campos, mapeo visual, descarga
+- Generacion de packs de documentos en ZIP
 
-## Contributing
+### Importacion desde Excel
+- Importacion masiva de empleadores, extranjeros y expedientes desde Excel
+- Soporte para multiples formatos de columnas (2017-2022 y 2023-2025)
+- Comando artisan: `php artisan excel:import`
+- Modo dry-run para validacion previa
+- Analisis de estructura Excel: `php artisan excel:analyze`
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+### Perfil de Usuario
+- Vista de perfil con edicion de datos personales
+- Cambio de contrasena con validacion de contrasena actual
+- Eliminacion de cuenta (soft delete)
 
-## Code of Conduct
+## Arquitectura
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+```
+app/
+├── Console/Commands/       # Comandos artisan (importacion Excel)
+├── DTOs/                   # Data Transfer Objects (10)
+├── Enums/                  # Enums PHP (10)
+├── Http/Controllers/       # Controladores (6)
+├── Models/                 # Modelos Eloquent (15)
+├── Repositories/
+│   ├── Contracts/          # Interfaces de repositorio (6)
+│   └── Eloquent/           # Implementaciones Eloquent (6)
+├── Services/               # Servicios de negocio (10)
+└── Providers/              # Service Providers
 
-## Security Vulnerabilities
+resources/
+├── views/
+│   ├── layouts/            # Layout principal + sidebar + topbar
+│   ├── livewire/           # Componentes Volt (28 vistas)
+│   │   ├── auth/           # Login, Registro
+│   │   ├── checklist/      # Vista de requisitos
+│   │   ├── employers/      # CRUD empleadores
+│   │   ├── foreigners/     # CRUD extranjeros
+│   │   ├── inmigration-files/  # CRUD expedientes
+│   │   ├── pdf-templates/  # Gestion plantillas PDF
+│   │   ├── profile/        # Perfil de usuario
+│   │   ├── requirement-templates/  # Plantillas de requisitos
+│   │   └── templates/      # Plantillas (legacy)
+│   └── documents/          # Vistas Blade para DomPDF
+├── pdf/                    # Repositorio de PDFs oficiales (5 archivos)
+└── scss/                   # Estilos SCSS
+```
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+### Patrones de Diseno
+- **Repository Pattern**: abstraccion de acceso a datos con interfaces e implementaciones Eloquent
+- **DTO Pattern**: objetos inmutables para transferencia de datos entre capas
+- **Service Layer**: logica de negocio encapsulada en servicios
+- **State Machine**: control de transiciones de estado via enum
+- **Pipeline Pattern**: filtrado dinamico en consultas
+- **Polymorphic Relations**: direcciones vinculables a multiples entidades
+- **Livewire Volt**: componentes de pagina completa con PHP + Blade inline
 
-## License
+## Instalacion
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+### Requisitos Previos
+- PHP 8.2+
+- Composer
+- Node.js / npm
+- MySQL
+- pdftk (para procesamiento de PDFs AcroForm)
+
+### Configuracion
+
+```bash
+# Clonar repositorio
+git clone <repo-url>
+cd rrhh-extranjeria-app
+
+# Instalar dependencias
+composer install
+npm install
+
+# Configurar entorno
+cp .env.example .env
+php artisan key:generate
+
+# Configurar base de datos en .env
+# DB_DATABASE=rrhh_extranjeria
+# DB_USERNAME=...
+# DB_PASSWORD=...
+
+# Ejecutar migraciones y seeders
+php artisan migrate --seed
+
+# Compilar assets
+npm run dev
+```
+
+### Seeders Disponibles
+- `UserSeeder`: usuario administrador
+- `CountrySeeder`: 195 paises
+- `ProvinceSeeder`: 52 provincias espanolas
+- `MunicipalitySeeder`: 845 municipios
+- `EmployerSeeder`: 10 empleadores de ejemplo
+- `ForeignerSeeder`: 15 trabajadores de ejemplo
+- `InmigrationFileSeeder`: 15 expedientes de ejemplo con direcciones laborales
+
+### Comandos Artisan
+```bash
+# Importar datos desde Excel
+php artisan excel:import [archivo] [--sheet=N] [--dry-run]
+
+# Analizar estructura de archivo Excel
+php artisan excel:analyze [archivo]
+```
+
+## Dependencias Principales
+
+| Paquete | Version | Uso |
+|---------|---------|-----|
+| laravel/framework | ^12.0 | Framework base |
+| livewire/livewire | ^3.7 | Componentes reactivos |
+| livewire/volt | ^1.10 | Componentes Volt inline |
+| barryvdh/laravel-dompdf | ^3.1 | Generacion PDF desde Blade |
+| phpoffice/phpspreadsheet | ^5.4 | Lectura de archivos Excel |
+| spatie/pdf-to-text | ^1.54 | Extraccion de texto de PDF |

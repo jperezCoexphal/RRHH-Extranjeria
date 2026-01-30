@@ -122,7 +122,7 @@
             </a>
             <ul class="dropdown-menu dropdown-menu-end shadow">
                 <li>
-                    <a class="dropdown-item" href="#">
+                    <a class="dropdown-item" href="{{ route('profile.show') }}">
                         <i class="bi bi-person me-2 text-gray-400"></i>
                         Perfil
                     </a>

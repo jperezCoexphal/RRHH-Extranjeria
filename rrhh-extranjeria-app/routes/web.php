@@ -52,6 +52,9 @@ Route::prefix('/v1')->middleware('auth')->group(function () {
     // Dashboard
     Volt::route('/', 'dashboard')->name('dashboard');
 
+    // Profile
+    Volt::route('/profile', 'profile.show')->name('profile.show');
+
     // Employers - Volt Components
     Route::prefix('employers')->name('employers.')->group(function () {
         Volt::route('/', 'employers.index')->name('index');
