@@ -4,14 +4,17 @@ use App\Models\InmigrationFile;
 use App\Models\Employer;
 use App\Models\Foreigner;
 use App\Models\ForeignerExtraData;
+use App\Models\CnoCode;
 use App\Models\Country;
 use App\Models\Province;
 use App\Models\Municipality;
 use App\Enums\ApplicationType;
+use App\Enums\PdfTemplateType;
 use App\Enums\WorkingDayType;
 use App\Enums\LegalForm;
 use App\Enums\Gender;
 use App\Enums\MaritalStatus;
+use App\Repositories\Contracts\PdfTemplateRepository;
 use App\Services\EmployerService;
 use Livewire\Volt\Component;
 use Livewire\Attributes\Layout;
@@ -86,6 +89,7 @@ class extends Component {
     public string $for_gender = '';
     public string $for_birthdate = '';
     public string $for_marital_status = '';
+    public bool $for_has_children = false;
     public string $for_nationality_id = '';
     public string $for_birth_country_id = '';
     public string $for_birthplace_name = '';
@@ -114,6 +118,15 @@ class extends Component {
     public array $provinces = [];
     public array $municipalities = [];
 
+    // CNO SEPE
+    public string $cno_code_id = '';
+    public string $cnoSearch = '';
+
+    // Plantillas PDF
+    public string $modelo_ex_template_id = '';
+    public string $contrato_template_id = '';
+    public string $memoria_template_id = '';
+
     public function mount(): void
     {
         $currentYear = date('Y');
@@ -124,15 +137,18 @@ class extends Component {
             $this->campaign = ($currentYear - 1) . '-' . $currentYear;
         }
 
+        $campaignYears = explode('-', $this->campaign);
+        $shortCampaign = substr($campaignYears[0], -2) . substr($campaignYears[1] ?? $campaignYears[0], -2);
+
         $lastFile = InmigrationFile::where('campaign', $this->campaign)
             ->orderBy('file_code', 'desc')
             ->first();
 
         if ($lastFile) {
             $lastNumber = (int) substr($lastFile->file_code, -4);
-            $this->file_code = 'EXP-' . $this->campaign . '-' . str_pad($lastNumber + 1, 4, '0', STR_PAD_LEFT);
+            $this->file_code = 'EXP-' . $shortCampaign . '-' . str_pad($lastNumber + 1, 4, '0', STR_PAD_LEFT);
         } else {
-            $this->file_code = 'EXP-' . $this->campaign . '-0001';
+            $this->file_code = 'EXP-' . $shortCampaign . '-0001';
         }
     }
 
@@ -170,6 +186,19 @@ class extends Component {
         }
 
         return $rules;
+    }
+
+    // CNO SEPE selection
+    public function selectCnoCode($id): void
+    {
+        $this->cno_code_id = (string) $id;
+        $this->cnoSearch = '';
+    }
+
+    public function clearCnoCode(): void
+    {
+        $this->cno_code_id = '';
+        $this->cnoSearch = '';
     }
 
     // Cascading selects para direccion trabajo
@@ -358,6 +387,7 @@ class extends Component {
             'for_gender' => 'required|string',
             'for_birthdate' => 'required|date',
             'for_marital_status' => 'required|string',
+            'for_has_children' => 'boolean',
             'for_nationality_id' => 'required|exists:countries,id',
             'for_birth_country_id' => 'required|exists:countries,id',
             'for_birthplace_name' => 'required|string|max:255',
@@ -374,6 +404,7 @@ class extends Component {
                 'gender' => $this->for_gender,
                 'birthdate' => $this->for_birthdate,
                 'marital_status' => $this->for_marital_status,
+                'has_children' => $this->for_has_children,
                 'nationality_id' => $this->for_nationality_id,
                 'birth_country_id' => $this->for_birth_country_id,
                 'birthplace_name' => $this->for_birthplace_name,
@@ -452,6 +483,7 @@ class extends Component {
         $this->for_gender = '';
         $this->for_birthdate = '';
         $this->for_marital_status = '';
+        $this->for_has_children = false;
         $this->for_nationality_id = '';
         $this->for_birth_country_id = '';
         $this->for_birthplace_name = '';
@@ -497,6 +529,10 @@ class extends Component {
                 'employer_id' => $validated['employer_id'],
                 'foreigner_id' => $validated['foreigner_id'],
                 'editor_id' => Auth::id(),
+                'cno_code_id' => $this->cno_code_id ?: null,
+                'modelo_ex_template_id' => $this->modelo_ex_template_id ?: null,
+                'contrato_template_id' => $this->contrato_template_id ?: null,
+                'memoria_template_id' => $this->memoria_template_id ?: null,
             ]);
 
             $streetName = ($validated['street_name'] ?? '') ?: null;
@@ -540,6 +576,16 @@ class extends Component {
             });
         }
 
+        $templateRepo = app(PdfTemplateRepository::class);
+
+        $cnoCodesQuery = CnoCode::orderBy('code');
+        if ($this->cnoSearch) {
+            $cnoCodesQuery->where(function ($q) {
+                $q->where('code', 'like', "{$this->cnoSearch}%")
+                  ->orWhere('description', 'like', "%{$this->cnoSearch}%");
+            });
+        }
+
         return [
             'employers' => $employersQuery->limit(50)->get(),
             'foreigners' => $foreignersQuery->limit(50)->get(),
@@ -551,6 +597,11 @@ class extends Component {
             'maritalStatuses' => MaritalStatus::cases(),
             'selectedEmployer' => $this->employer_id ? Employer::find($this->employer_id) : null,
             'selectedForeigner' => $this->foreigner_id ? Foreigner::find($this->foreigner_id) : null,
+            'cnoCodes' => $cnoCodesQuery->limit(50)->get(),
+            'selectedCnoCode' => $this->cno_code_id ? CnoCode::find($this->cno_code_id) : null,
+            'modeloExTemplates' => $templateRepo->getActiveByType(PdfTemplateType::MODELO_EX),
+            'contratoTemplates' => $templateRepo->getActiveByType(PdfTemplateType::CONTRATO),
+            'memoriaTemplates' => $templateRepo->getActiveByType(PdfTemplateType::MEMORIA),
         ];
     }
 }; ?>
@@ -936,6 +987,12 @@ class extends Component {
                                             </select>
                                             @error('for_marital_status') <div class="invalid-feedback">{{ $message }}</div> @enderror
                                         </div>
+                                        <div class="col-md-4 d-flex align-items-center pt-4">
+                                            <div class="form-check form-switch">
+                                                <input type="checkbox" wire:model="for_has_children" class="form-check-input" id="for_has_children" role="switch">
+                                                <label class="form-check-label" for="for_has_children">Tiene Hijos</label>
+                                            </div>
+                                        </div>
                                         <div class="col-md-4">
                                             <label class="form-label">Nacionalidad <span class="text-danger">*</span></label>
                                             <select wire:model="for_nationality_id" class="form-select form-select-sm @error('for_nationality_id') is-invalid @enderror">
@@ -1062,6 +1119,30 @@ class extends Component {
                                 <label class="form-label">Puesto de Trabajo <span class="text-danger">*</span></label>
                                 <input type="text" wire:model="job_title" class="form-control @error('job_title') is-invalid @enderror" placeholder="Ej: Peon Agricola">
                                 @error('job_title') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Codigo CNO SEPE</label>
+                                @if($selectedCnoCode && !$cnoSearch)
+                                    <div class="input-group">
+                                        <span class="form-control bg-light text-truncate">{{ $selectedCnoCode->code }} - {{ $selectedCnoCode->description }}</span>
+                                        <button type="button" class="btn btn-outline-secondary" wire:click="clearCnoCode">
+                                            <i class="bi bi-x-lg"></i>
+                                        </button>
+                                    </div>
+                                @else
+                                    <input type="text" wire:model.live.debounce.300ms="cnoSearch" class="form-control" placeholder="Buscar por codigo o descripcion...">
+                                    @if($cnoSearch)
+                                        <select wire:change="selectCnoCode($event.target.value)" class="form-select mt-1" size="5">
+                                            <option value="" disabled selected>Seleccionar...</option>
+                                            @forelse($cnoCodes as $cno)
+                                                <option value="{{ $cno->id }}">{{ $cno->code }} - {{ $cno->description }}</option>
+                                            @empty
+                                                <option value="" disabled>Sin resultados</option>
+                                            @endforelse
+                                        </select>
+                                    @endif
+                                @endif
+                                @error('cno_code_id') <div class="text-danger small">{{ $message }}</div> @enderror
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label">Salario Bruto Anual</label>
@@ -1197,6 +1278,46 @@ class extends Component {
                             <p class="mb-0">{{ $selectedForeigner->first_name }} {{ $selectedForeigner->last_name }}</p>
                         </div>
                         @endif
+                    </div>
+                </div>
+
+                {{-- Plantillas de Documentos --}}
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h6 class="m-0">
+                            <i class="bi bi-file-earmark-pdf me-2"></i>
+                            Plantillas de Documentos
+                        </h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <label class="form-label small text-muted mb-1">Modelo EX</label>
+                            <select wire:model="modelo_ex_template_id" class="form-select form-select-sm">
+                                <option value="">Predeterminada del sistema</option>
+                                @foreach($modeloExTemplates as $tpl)
+                                    <option value="{{ $tpl->id }}">{{ $tpl->name }}@if($tpl->is_default) (predeterminada)@endif</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label small text-muted mb-1">Contrato</label>
+                            <select wire:model="contrato_template_id" class="form-select form-select-sm">
+                                <option value="">Predeterminada del sistema</option>
+                                @foreach($contratoTemplates as $tpl)
+                                    <option value="{{ $tpl->id }}">{{ $tpl->name }}@if($tpl->is_default) (predeterminada)@endif</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label small text-muted mb-1">Memoria Justificativa</label>
+                            <select wire:model="memoria_template_id" class="form-select form-select-sm">
+                                <option value="">Predeterminada del sistema</option>
+                                @foreach($memoriaTemplates as $tpl)
+                                    <option value="{{ $tpl->id }}">{{ $tpl->name }}@if($tpl->is_default) (predeterminada)@endif</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <small class="text-muted">Dejar en "Predeterminada" para usar la plantilla por defecto del sistema.</small>
                     </div>
                 </div>
 

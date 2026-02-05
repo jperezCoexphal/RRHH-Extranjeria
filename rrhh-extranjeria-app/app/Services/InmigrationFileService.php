@@ -226,13 +226,12 @@ class InmigrationFileService
      */
     public function generateFileCode(string $campaign, string $applicationType): string
     {
-        // Formato: CAMPAIGN-TYPE-SEQUENCE (ej: 2025-EX03-0001)
-        $year = substr($campaign, 0, 4);
-        $typeCode = str_replace('-', '', $applicationType);
+        // Formato: EXP-YYYYYY-SEQUENCE (ej: EXP-2526-0001 para campaña 2025-2026)
+        $years = explode('-', $campaign);
+        $shortCampaign = substr($years[0], -2) . substr($years[1] ?? $years[0], -2);
 
         $lastFile = $this->repository->query()
             ->where('campaign', $campaign)
-            ->where('application_type', $applicationType)
             ->orderBy('id', 'desc')
             ->first();
 
@@ -244,6 +243,6 @@ class InmigrationFileService
             $sequence = $lastSequence + 1;
         }
 
-        return sprintf('%s-%s-%04d', $year, $typeCode, $sequence);
+        return sprintf('EXP-%s-%04d', $shortCampaign, $sequence);
     }
 }

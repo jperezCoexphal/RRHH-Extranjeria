@@ -17,6 +17,7 @@ class DatabaseSeeder extends Seeder
             CountrySeeder::class,      // Primero países
             ProvinceSeeder::class,     // Luego provincias (depende de países)
             MunicipalitySeeder::class, // Finalmente municipios (depende de provincias)
+            CnoCodeSeeder::class,     // Códigos CNO SEPE (antes de expedientes)
             EmployerSeeder::class,
             ForeignerSeeder::class,
             InmigrationFileSeeder::class

@@ -279,6 +279,10 @@ class PdfTemplateService
                         'label' => 'Estado civil',
                         'options' => array_column(MaritalStatus::cases(), 'value'),
                     ],
+                    'tiene_hijos' => [
+                        'label' => 'Tiene hijos',
+                        'options' => ['Sí', 'No'],
+                    ],
                     'nacionalidad' => 'Nacionalidad',
                     'pais_nacimiento' => 'País de nacimiento',
                     'lugar_nacimiento' => 'Lugar de nacimiento',

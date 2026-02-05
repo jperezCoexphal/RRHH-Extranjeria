@@ -33,6 +33,7 @@ class Foreigner extends Model
         'nationality_id',
         'birth_country_id',
         'birthplace_name',
+        'has_children',
     ];
 
         // CASTS
@@ -40,6 +41,7 @@ class Foreigner extends Model
         'gender' => Gender::class,
         'marital_status' => MaritalStatus::class,
         'birthdate' => 'date',
+        'has_children' => 'boolean',
     ];
 
     // RELATIONSHIPS

@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Enums\ApplicationType;
 use App\Enums\ImmigrationFileStatus;
+use App\Enums\PdfTemplateType;
 use App\Enums\WorkingDayType;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Model;
@@ -39,6 +40,10 @@ class InmigrationFile extends Model
         'editor_id',
         'employer_id',
         'foreigner_id',
+        'cno_code_id',
+        'modelo_ex_template_id',
+        'contrato_template_id',
+        'memoria_template_id',
     ];
 
         // CASTS
@@ -94,6 +99,50 @@ class InmigrationFile extends Model
     public function workAddress(): MorphOne
     {
         return $this->morphOne(Address::class, 'addressable');
+    }
+
+    /**
+     * Código CNO SEPE del puesto de trabajo
+     */
+    public function cnoCode(): BelongsTo
+    {
+        return $this->belongsTo(CnoCode::class, 'cno_code_id');
+    }
+
+    /**
+     * Plantilla PDF seleccionada para el Modelo EX
+     */
+    public function modeloExTemplate(): BelongsTo
+    {
+        return $this->belongsTo(PdfTemplate::class, 'modelo_ex_template_id');
+    }
+
+    /**
+     * Plantilla PDF seleccionada para el Contrato
+     */
+    public function contratoTemplate(): BelongsTo
+    {
+        return $this->belongsTo(PdfTemplate::class, 'contrato_template_id');
+    }
+
+    /**
+     * Plantilla PDF seleccionada para la Memoria
+     */
+    public function memoriaTemplate(): BelongsTo
+    {
+        return $this->belongsTo(PdfTemplate::class, 'memoria_template_id');
+    }
+
+    /**
+     * Obtiene la plantilla asignada para un tipo de documento
+     */
+    public function getTemplateFor(PdfTemplateType $type): ?PdfTemplate
+    {
+        return match ($type) {
+            PdfTemplateType::MODELO_EX => $this->modeloExTemplate,
+            PdfTemplateType::CONTRATO => $this->contratoTemplate,
+            PdfTemplateType::MEMORIA => $this->memoriaTemplate,
+        };
     }
 
     // ACCESSORS & MUTATORS

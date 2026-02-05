@@ -52,6 +52,7 @@ class DocumentPackDTO
             'fecha_nacimiento_mes' => $birthdate?->format('m') ?? '',
             'fecha_nacimiento_anio' => $birthdate?->format('Y') ?? '',
             'estado_civil' => $foreigner->marital_status?->value ?? '',
+            'tiene_hijos' => $foreigner->has_children ? 'Sí' : 'No',
             'nacionalidad' => $foreigner->nationality?->country_name ?? '',
             'pais_nacimiento' => $foreigner->birthCountry?->country_name ?? '',
             'lugar_nacimiento' => $foreigner->birthplace_name ?? '',

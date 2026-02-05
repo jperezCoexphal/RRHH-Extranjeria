@@ -392,6 +392,7 @@ class ForeignerSeeder extends Seeder
                 ])
                 ->toArray();
 
+            $foreignerData['has_children'] = (bool) rand(0, 1);
             $foreigner = Foreigner::create($foreignerData);
 
             ForeignerExtraData::create(array_merge(

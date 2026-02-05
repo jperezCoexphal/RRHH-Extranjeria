@@ -7,6 +7,7 @@ use App\Enums\PdfTemplateType;
 use App\Exceptions\DocumentGenerationException;
 use App\Models\Address;
 use App\Models\InmigrationFile;
+use App\Models\PdfTemplate;
 use App\Models\User;
 use App\Repositories\Contracts\InmigrationFileRepository;
 use App\Repositories\Contracts\PdfTemplateRepository;
@@ -18,8 +19,9 @@ use Illuminate\Support\Facades\Log;
  * Los documentos se generan en caliente y no se almacenan permanentemente
  *
  * Prioridad de generación:
- * 1. Plantilla PDF AcroForm con mapeo configurado
- * 2. Fallback a generación desde vista Blade (DomPDF)
+ * 1. Plantilla PDF asignada al expediente
+ * 2. Plantilla PDF predeterminada del sistema
+ * 3. Fallback a generación desde vista Blade (DomPDF)
  */
 class DocumentGenerationService
 {
@@ -63,31 +65,34 @@ class DocumentGenerationService
         $templateData = $documentPack->toTemplateData();
 
         // 4. Generar los documentos en memoria
-        $fileCode = $this->sanitizeFileCode($inmigrationFile->file_code);
-        $applicationType = $inmigrationFile->application_type?->value ?? 'EX';
+        $baseName = $this->buildBaseName($inmigrationFile);
+        $applicationType = str_replace('-', '', $inmigrationFile->application_type?->value ?? 'EX');
 
         $documents = [];
 
         try {
-            // Generar Modelo EX (prioridad: plantilla PDF, fallback: Blade)
-            $documents["{$fileCode}_{$applicationType}.pdf"] = $this->generateDocument(
+            // Generar Modelo EX
+            $documents["{$applicationType} {$baseName}.pdf"] = $this->generateDocument(
                 PdfTemplateType::MODELO_EX,
                 $documentPack,
-                fn($data) => $this->pdfGenerator->generateModeloEX($data)
+                fn($data) => $this->pdfGenerator->generateModeloEX($data),
+                $inmigrationFile->getTemplateFor(PdfTemplateType::MODELO_EX)
             );
 
-            // Generar Contrato (prioridad: plantilla PDF, fallback: Blade)
-            $documents["{$fileCode}_Contrato.pdf"] = $this->generateDocument(
+            // Generar Contrato
+            $documents["CONTRATO {$baseName}.pdf"] = $this->generateDocument(
                 PdfTemplateType::CONTRATO,
                 $documentPack,
-                fn($data) => $this->pdfGenerator->generateContrato($data)
+                fn($data) => $this->pdfGenerator->generateContrato($data),
+                $inmigrationFile->getTemplateFor(PdfTemplateType::CONTRATO)
             );
 
-            // Generar Memoria Justificativa (prioridad: plantilla PDF, fallback: Blade)
-            $documents["{$fileCode}_Memoria.pdf"] = $this->generateDocument(
+            // Generar Memoria Justificativa
+            $documents["MEMORIA {$baseName}.pdf"] = $this->generateDocument(
                 PdfTemplateType::MEMORIA,
                 $documentPack,
-                fn($data) => $this->pdfGenerator->generateMemoria($data)
+                fn($data) => $this->pdfGenerator->generateMemoria($data),
+                $inmigrationFile->getTemplateFor(PdfTemplateType::MEMORIA)
             );
         } catch (\Exception $e) {
             throw DocumentGenerationException::generationFailed($e->getMessage());
@@ -95,6 +100,7 @@ class DocumentGenerationService
 
         return [
             'file_code' => $inmigrationFile->file_code,
+            'file_title' => $inmigrationFile->file_title ?? $inmigrationFile->file_code,
             'documents' => $documents,
         ];
     }
@@ -118,18 +124,17 @@ class DocumentGenerationService
 
         $documentPack = $this->buildDocumentPackDTO($inmigrationFile, $representative);
 
-        
-        $fileCode = $this->sanitizeFileCode($inmigrationFile->file_code);
-        $applicationType = $inmigrationFile->application_type?->value ?? 'EX';
+        $baseName = $this->buildBaseName($inmigrationFile);
+        $applicationType = str_replace('-', '', $inmigrationFile->application_type?->value ?? 'EX');
 
-        
         return [
             'file_code' => $inmigrationFile->file_code,
-            'filename' => "{$fileCode}_{$applicationType}.pdf",
+            'filename' => "{$applicationType} {$baseName}.pdf",
             'content' => $this->generateDocument(
                 PdfTemplateType::MODELO_EX,
                 $documentPack,
-                fn($data) => $this->pdfGenerator->generateModeloEX($data)
+                fn($data) => $this->pdfGenerator->generateModeloEX($data),
+                $inmigrationFile->getTemplateFor(PdfTemplateType::MODELO_EX)
             ),
         ];
     }
@@ -137,21 +142,25 @@ class DocumentGenerationService
     /**
      * Genera un documento usando plantilla PDF si está disponible, o fallback a Blade
      *
+     * Prioridad: plantilla del expediente → predeterminada del sistema → Blade
+     *
      * @param PdfTemplateType $documentType Tipo de documento a generar
      * @param DocumentPackDTO $documentPack Datos del expediente
      * @param callable $fallbackGenerator Función de fallback que genera PDF desde Blade
+     * @param PdfTemplate|null $expedientTemplate Plantilla asignada al expediente (override)
      * @return string Contenido binario del PDF generado
      */
     protected function generateDocument(
         PdfTemplateType $documentType,
         DocumentPackDTO $documentPack,
-        callable $fallbackGenerator
+        callable $fallbackGenerator,
+        ?PdfTemplate $expedientTemplate = null
     ): string {
-        // Buscar plantilla predeterminada para el tipo de documento
+        // 1. Plantilla asignada al expediente (prioridad máxima)
+        // 2. Plantilla predeterminada del sistema
         $applicationType = $documentPack->inmigrationFile->application_type;
-        $template = $this->pdfTemplateRepository->getDefaultTemplate($documentType, $applicationType);
-
-        
+        $template = $expedientTemplate
+            ?? $this->pdfTemplateRepository->getDefaultTemplate($documentType, $applicationType);
 
         // Si hay plantilla activa con archivo, usar el filler (con o sin mapeo)
         if ($template && $template->is_active && $template->file_exists) {
@@ -248,10 +257,13 @@ class DocumentGenerationService
     }
 
     /**
-     * Sanitiza el código de expediente para usar en nombres de archivo
+     * Construye el nombre base para los documentos: "Empleador - Trabajador"
      */
-    protected function sanitizeFileCode(string $fileCode): string
+    protected function buildBaseName(InmigrationFile $file): string
     {
-        return preg_replace('/[^a-zA-Z0-9\-_]/', '_', $fileCode);
+        $employer = $file->employer->comercial_name ?? $file->employer->fiscal_name ?? '';
+        $foreigner = trim($file->foreigner->first_name . ' ' . $file->foreigner->last_name);
+
+        return "{$employer} - {$foreigner}";
     }
 }

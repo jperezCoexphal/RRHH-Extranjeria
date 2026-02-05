@@ -25,6 +25,7 @@ class extends Component {
     public string $gender = '';
     public string $birthdate = '';
     public string $marital_status = '';
+    public bool $has_children = false;
     public string $nationality_id = '';
     public string $birth_country_id = '';
     public string $birthplace_name = '';
@@ -61,6 +62,7 @@ class extends Component {
             'gender' => 'required|string',
             'birthdate' => 'required|date',
             'marital_status' => 'required|string',
+            'has_children' => 'boolean',
             'nationality_id' => 'required|exists:countries,id',
             'birth_country_id' => 'required|exists:countries,id',
             'birthplace_name' => 'required|string|max:255',
@@ -110,6 +112,7 @@ class extends Component {
                 'gender' => $validated['gender'],
                 'birthdate' => $validated['birthdate'],
                 'marital_status' => $validated['marital_status'],
+                'has_children' => $validated['has_children'],
                 'nationality_id' => $validated['nationality_id'],
                 'birth_country_id' => $validated['birth_country_id'],
                 'birthplace_name' => $validated['birthplace_name'],
@@ -237,6 +240,12 @@ class extends Component {
                                     @endforeach
                                 </select>
                                 @error('marital_status') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                            </div>
+                            <div class="col-md-4 d-flex align-items-center pt-4">
+                                <div class="form-check form-switch">
+                                    <input type="checkbox" wire:model="has_children" class="form-check-input" id="has_children" role="switch">
+                                    <label class="form-check-label" for="has_children">Tiene Hijos</label>
+                                </div>
                             </div>
                             <div class="col-md-4">
                                 <label class="form-label">Nacionalidad <span class="text-danger">*</span></label>

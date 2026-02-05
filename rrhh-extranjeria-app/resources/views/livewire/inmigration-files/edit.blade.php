@@ -3,11 +3,14 @@
 use App\Models\InmigrationFile;
 use App\Models\Employer;
 use App\Models\Foreigner;
+use App\Models\CnoCode;
 use App\Models\Country;
 use App\Models\Province;
 use App\Models\Municipality;
 use App\Enums\ApplicationType;
+use App\Enums\PdfTemplateType;
 use App\Enums\WorkingDayType;
+use App\Repositories\Contracts\PdfTemplateRepository;
 use Livewire\Volt\Component;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
@@ -50,6 +53,15 @@ class extends Component {
     public array $provinces = [];
     public array $municipalities = [];
 
+    // CNO SEPE
+    public string $cno_code_id = '';
+    public string $cnoSearch = '';
+
+    // Plantillas PDF
+    public string $modelo_ex_template_id = '';
+    public string $contrato_template_id = '';
+    public string $memoria_template_id = '';
+
     public function mount(InmigrationFile $inmigrationFile): void
     {
         $this->file = $inmigrationFile->load('workAddress');
@@ -90,6 +102,14 @@ class extends Component {
                 $this->municipalities = Municipality::where('province_id', $this->province_id)->get()->toArray();
             }
         }
+
+        // Cargar CNO
+        $this->cno_code_id = (string) ($this->file->cno_code_id ?? '');
+
+        // Cargar plantillas seleccionadas
+        $this->modelo_ex_template_id = (string) ($this->file->modelo_ex_template_id ?? '');
+        $this->contrato_template_id = (string) ($this->file->contrato_template_id ?? '');
+        $this->memoria_template_id = (string) ($this->file->memoria_template_id ?? '');
     }
 
     public function rules(): array
@@ -114,6 +134,19 @@ class extends Component {
             'province_id' => 'nullable|exists:provinces,id',
             'municipality_id' => 'nullable|exists:municipalities,id',
         ];
+    }
+
+    // CNO SEPE selection
+    public function selectCnoCode($id): void
+    {
+        $this->cno_code_id = (string) $id;
+        $this->cnoSearch = '';
+    }
+
+    public function clearCnoCode(): void
+    {
+        $this->cno_code_id = '';
+        $this->cnoSearch = '';
     }
 
     public function updatedCountryId(): void
@@ -148,6 +181,10 @@ class extends Component {
                 'probation_period' => $validated['probation_period'] ?: null,
                 'employer_id' => $validated['employer_id'],
                 'foreigner_id' => $validated['foreigner_id'],
+                'cno_code_id' => $this->cno_code_id ?: null,
+                'modelo_ex_template_id' => $this->modelo_ex_template_id ?: null,
+                'contrato_template_id' => $this->contrato_template_id ?: null,
+                'memoria_template_id' => $this->memoria_template_id ?: null,
             ]);
 
             // Actualizar o crear direccion
@@ -177,12 +214,27 @@ class extends Component {
 
     public function with(): array
     {
+        $templateRepo = app(PdfTemplateRepository::class);
+
+        $cnoCodesQuery = CnoCode::orderBy('code');
+        if ($this->cnoSearch) {
+            $cnoCodesQuery->where(function ($q) {
+                $q->where('code', 'like', "{$this->cnoSearch}%")
+                  ->orWhere('description', 'like', "%{$this->cnoSearch}%");
+            });
+        }
+
         return [
             'employers' => Employer::orderBy('comercial_name')->get(),
             'foreigners' => Foreigner::orderBy('first_name')->get(),
             'applicationTypes' => ApplicationType::cases(),
             'workingDayTypes' => WorkingDayType::cases(),
             'countries' => Country::orderBy('country_name')->get(),
+            'cnoCodes' => $cnoCodesQuery->limit(50)->get(),
+            'selectedCnoCode' => $this->cno_code_id ? CnoCode::find($this->cno_code_id) : null,
+            'modeloExTemplates' => $templateRepo->getActiveByType(PdfTemplateType::MODELO_EX),
+            'contratoTemplates' => $templateRepo->getActiveByType(PdfTemplateType::CONTRATO),
+            'memoriaTemplates' => $templateRepo->getActiveByType(PdfTemplateType::MEMORIA),
         ];
     }
 }; ?>
@@ -294,6 +346,30 @@ class extends Component {
                                 @error('job_title') <div class="invalid-feedback">{{ $message }}</div> @enderror
                             </div>
                             <div class="col-md-6">
+                                <label class="form-label">Codigo CNO SEPE</label>
+                                @if($selectedCnoCode && !$cnoSearch)
+                                    <div class="input-group">
+                                        <span class="form-control bg-light text-truncate">{{ $selectedCnoCode->code }} - {{ $selectedCnoCode->description }}</span>
+                                        <button type="button" class="btn btn-outline-secondary" wire:click="clearCnoCode">
+                                            <i class="bi bi-x-lg"></i>
+                                        </button>
+                                    </div>
+                                @else
+                                    <input type="text" wire:model.live.debounce.300ms="cnoSearch" class="form-control" placeholder="Buscar por codigo o descripcion...">
+                                    @if($cnoSearch)
+                                        <select wire:change="selectCnoCode($event.target.value)" class="form-select mt-1" size="5">
+                                            <option value="" disabled selected>Seleccionar...</option>
+                                            @forelse($cnoCodes as $cno)
+                                                <option value="{{ $cno->id }}">{{ $cno->code }} - {{ $cno->description }}</option>
+                                            @empty
+                                                <option value="" disabled>Sin resultados</option>
+                                            @endforelse
+                                        </select>
+                                    @endif
+                                @endif
+                                @error('cno_code_id') <div class="text-danger small">{{ $message }}</div> @enderror
+                            </div>
+                            <div class="col-md-6">
                                 <label class="form-label">Salario Bruto Anual</label>
                                 <div class="input-group">
                                     <input type="number" wire:model="salary" class="form-control @error('salary') is-invalid @enderror" step="0.01" min="0">
@@ -402,6 +478,46 @@ class extends Component {
 
             {{-- Sidebar --}}
             <div class="col-lg-4">
+                {{-- Plantillas de Documentos --}}
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h6 class="m-0">
+                            <i class="bi bi-file-earmark-pdf me-2"></i>
+                            Plantillas de Documentos
+                        </h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <label class="form-label small text-muted mb-1">Modelo EX</label>
+                            <select wire:model="modelo_ex_template_id" class="form-select form-select-sm">
+                                <option value="">Predeterminada del sistema</option>
+                                @foreach($modeloExTemplates as $tpl)
+                                    <option value="{{ $tpl->id }}">{{ $tpl->name }}@if($tpl->is_default) (predeterminada)@endif</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label small text-muted mb-1">Contrato</label>
+                            <select wire:model="contrato_template_id" class="form-select form-select-sm">
+                                <option value="">Predeterminada del sistema</option>
+                                @foreach($contratoTemplates as $tpl)
+                                    <option value="{{ $tpl->id }}">{{ $tpl->name }}@if($tpl->is_default) (predeterminada)@endif</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label small text-muted mb-1">Memoria Justificativa</label>
+                            <select wire:model="memoria_template_id" class="form-select form-select-sm">
+                                <option value="">Predeterminada del sistema</option>
+                                @foreach($memoriaTemplates as $tpl)
+                                    <option value="{{ $tpl->id }}">{{ $tpl->name }}@if($tpl->is_default) (predeterminada)@endif</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <small class="text-muted">Dejar en "Predeterminada" para usar la plantilla por defecto del sistema.</small>
+                    </div>
+                </div>
+
                 {{-- Acciones --}}
                 <div class="card">
                     <div class="card-body">

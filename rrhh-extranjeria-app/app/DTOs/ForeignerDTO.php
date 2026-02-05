@@ -17,6 +17,7 @@ class ForeignerDTO
         public readonly Carbon $birthdate,
         public readonly string $nationality,
         public readonly MaritalStatus $marital_status,
+        public readonly bool $has_children = false,
         public readonly ?string $niss = null,
         public readonly ?int $id = null,
     ) {}
@@ -32,6 +33,7 @@ class ForeignerDTO
             birthdate: Carbon::parse($data['birthdate']),
             nationality: $data['nationality'],
             marital_status: MaritalStatus::from($data['marital_status']),
+            has_children: (bool) ($data['has_children'] ?? false),
             niss: $data['niss'] ?? null,
             id: $data['id'] ?? null,
         );
@@ -48,6 +50,7 @@ class ForeignerDTO
             'birthdate' => $this->birthdate->format('Y-m-d'),
             'nationality' => $this->nationality,
             'marital_status' => $this->marital_status->value,
+            'has_children' => $this->has_children,
             'niss' => $this->niss,
         ];
     }

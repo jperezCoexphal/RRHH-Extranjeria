@@ -27,6 +27,7 @@ class StoreForeignerRequest extends FormRequest
             'birthdate' => ['required', 'date', 'before:today'],
             'nationality' => ['required', 'string', 'max:50'],
             'marital_status' => ['required', Rule::enum(MaritalStatus::class)],
+            'has_children' => ['required', 'boolean'],
 
             // Foreigner extra data
             'father_name' => ['nullable', 'string', 'max:150'],

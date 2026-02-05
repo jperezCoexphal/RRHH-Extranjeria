@@ -51,6 +51,8 @@ class InmigrationFileSeeder extends Seeder
         $munLleida = Municipality::where('province_id', $lleida?->id)->first();
 
         $campaign = '2025-2026';
+        $campaignYears = explode('-', $campaign);
+        $shortCampaign = substr($campaignYears[0], -2) . substr($campaignYears[1], -2);
         $sequence = InmigrationFile::where('campaign', $campaign)->count();
 
         $files = [
@@ -63,7 +65,7 @@ class InmigrationFileSeeder extends Seeder
                 'job_title' => 'Peón Agrícola',
                 'start_date' => '2026-03-01',
                 'end_date' => null,
-                'salary' => 1350.00,
+                'salary' => 18900.00,
                 'working_day_type' => WorkingDayType::COMPLETA,
                 'working_hours' => 40,
                 'probation_period' => 30,
@@ -84,7 +86,7 @@ class InmigrationFileSeeder extends Seeder
                 'job_title' => 'Recolectora de Hortalizas',
                 'start_date' => '2026-04-01',
                 'end_date' => '2026-09-30',
-                'salary' => 1200.00,
+                'salary' => 16800.00,
                 'working_day_type' => WorkingDayType::COMPLETA,
                 'working_hours' => 40,
                 'probation_period' => 15,
@@ -106,7 +108,7 @@ class InmigrationFileSeeder extends Seeder
                 'job_title' => 'Operario de Almazara',
                 'start_date' => '2026-01-15',
                 'end_date' => null,
-                'salary' => 1400.00,
+                'salary' => 19600.00,
                 'working_day_type' => WorkingDayType::COMPLETA,
                 'working_hours' => 40,
                 'probation_period' => 30,
@@ -127,7 +129,7 @@ class InmigrationFileSeeder extends Seeder
                 'job_title' => 'Peón de Frutales',
                 'start_date' => '2026-05-01',
                 'end_date' => '2026-10-31',
-                'salary' => 1180.00,
+                'salary' => 16520.00,
                 'working_day_type' => WorkingDayType::COMPLETA,
                 'working_hours' => 40,
                 'probation_period' => 15,
@@ -149,7 +151,7 @@ class InmigrationFileSeeder extends Seeder
                 'job_title' => 'Auxiliar de Almacén',
                 'start_date' => '2026-02-01',
                 'end_date' => null,
-                'salary' => 1250.00,
+                'salary' => 17500.00,
                 'working_day_type' => WorkingDayType::COMPLETA,
                 'working_hours' => 40,
                 'probation_period' => 30,
@@ -171,7 +173,7 @@ class InmigrationFileSeeder extends Seeder
                 'job_title' => 'Podador Especializado',
                 'start_date' => '2025-11-01',
                 'end_date' => null,
-                'salary' => 1500.00,
+                'salary' => 21000.00,
                 'working_day_type' => WorkingDayType::COMPLETA,
                 'working_hours' => 40,
                 'probation_period' => 30,
@@ -193,7 +195,7 @@ class InmigrationFileSeeder extends Seeder
                 'job_title' => 'Peón de Invernadero',
                 'start_date' => '2026-03-15',
                 'end_date' => '2026-08-15',
-                'salary' => 1150.00,
+                'salary' => 16100.00,
                 'working_day_type' => WorkingDayType::COMPLETA,
                 'working_hours' => 40,
                 'probation_period' => 15,
@@ -215,7 +217,7 @@ class InmigrationFileSeeder extends Seeder
                 'job_title' => 'Pastora de Ganado',
                 'start_date' => '2026-04-01',
                 'end_date' => null,
-                'salary' => 1300.00,
+                'salary' => 18200.00,
                 'working_day_type' => WorkingDayType::COMPLETA,
                 'working_hours' => 40,
                 'probation_period' => 30,
@@ -236,7 +238,7 @@ class InmigrationFileSeeder extends Seeder
                 'job_title' => 'Recolector de Cítricos',
                 'start_date' => '2026-01-10',
                 'end_date' => '2026-06-30',
-                'salary' => 1200.00,
+                'salary' => 16800.00,
                 'working_day_type' => WorkingDayType::COMPLETA,
                 'working_hours' => 40,
                 'probation_period' => 15,
@@ -257,7 +259,7 @@ class InmigrationFileSeeder extends Seeder
                 'job_title' => 'Viverista',
                 'start_date' => '2026-03-01',
                 'end_date' => null,
-                'salary' => 1380.00,
+                'salary' => 19320.00,
                 'working_day_type' => WorkingDayType::COMPLETA,
                 'working_hours' => 40,
                 'probation_period' => 30,
@@ -279,7 +281,7 @@ class InmigrationFileSeeder extends Seeder
                 'job_title' => 'Recolector de Fresas',
                 'start_date' => '2026-02-15',
                 'end_date' => '2026-07-15',
-                'salary' => 1180.00,
+                'salary' => 16520.00,
                 'working_day_type' => WorkingDayType::COMPLETA,
                 'working_hours' => 40,
                 'probation_period' => 15,
@@ -301,7 +303,7 @@ class InmigrationFileSeeder extends Seeder
                 'job_title' => 'Auxiliar de Riego',
                 'start_date' => '2026-05-01',
                 'end_date' => null,
-                'salary' => 900.00,
+                'salary' => 12600.00,
                 'working_day_type' => WorkingDayType::PARCIAL,
                 'working_hours' => 25,
                 'probation_period' => 30,
@@ -323,7 +325,7 @@ class InmigrationFileSeeder extends Seeder
                 'job_title' => 'Vareador de Olivos',
                 'start_date' => '2025-10-15',
                 'end_date' => '2026-02-28',
-                'salary' => 1250.00,
+                'salary' => 17500.00,
                 'working_day_type' => WorkingDayType::COMPLETA,
                 'working_hours' => 40,
                 'probation_period' => 15,
@@ -344,7 +346,7 @@ class InmigrationFileSeeder extends Seeder
                 'job_title' => 'Tractorista',
                 'start_date' => '2026-01-01',
                 'end_date' => null,
-                'salary' => 1450.00,
+                'salary' => 20300.00,
                 'working_day_type' => WorkingDayType::COMPLETA,
                 'working_hours' => 40,
                 'probation_period' => 30,
@@ -366,7 +368,7 @@ class InmigrationFileSeeder extends Seeder
                 'job_title' => 'Operaria de Envasado',
                 'start_date' => '2026-06-01',
                 'end_date' => null,
-                'salary' => 1280.00,
+                'salary' => 17920.00,
                 'working_day_type' => WorkingDayType::COMPLETA,
                 'working_hours' => 40,
                 'probation_period' => 30,
@@ -388,7 +390,7 @@ class InmigrationFileSeeder extends Seeder
             $employer = $employers[$data['employer_idx']];
 
             $sequence++;
-            $code = sprintf('%s-%s-%04d', $campaign, $data['application_type']->value, $sequence);
+            $code = sprintf('EXP-%s-%04d', $shortCampaign, $sequence);
 
             $title = sprintf(
                 '%s %s - %s',

@@ -4,7 +4,9 @@ use App\Models\InmigrationFile;
 use App\Models\FileRequirement;
 use App\Models\RequirementTemplate;
 use App\Enums\ImmigrationFileStatus;
+use App\Enums\PdfTemplateType;
 use App\Enums\TargetEntity;
+use App\Repositories\Contracts\PdfTemplateRepository;
 use App\Services\ChecklistService;
 use Livewire\Volt\Component;
 use Livewire\Attributes\Layout;
@@ -38,6 +40,11 @@ class extends Component {
     public ?int $editingObservationId = null;
     public string $observationText = '';
 
+    // Seleccion de plantillas PDF
+    public string $modelo_ex_template_id = '';
+    public string $contrato_template_id = '';
+    public string $memoria_template_id = '';
+
     public function mount(InmigrationFile $inmigrationFile): void
     {
         $this->file = $inmigrationFile->load([
@@ -45,11 +52,16 @@ class extends Component {
             'employer.freelancer',
             'foreigner',
             'editor',
+            'cnoCode',
             'requirements',
             'workAddress.country',
             'workAddress.province',
             'workAddress.municipality'
         ]);
+
+        $this->modelo_ex_template_id = (string) ($this->file->modelo_ex_template_id ?? '');
+        $this->contrato_template_id = (string) ($this->file->contrato_template_id ?? '');
+        $this->memoria_template_id = (string) ($this->file->memoria_template_id ?? '');
     }
 
     public function toggleSection(string $entity): void
@@ -273,6 +285,17 @@ class extends Component {
         $this->req_save_as_template = false;
     }
 
+    public function saveTemplateSelection(): void
+    {
+        $this->file->update([
+            'modelo_ex_template_id' => $this->modelo_ex_template_id ?: null,
+            'contrato_template_id' => $this->contrato_template_id ?: null,
+            'memoria_template_id' => $this->memoria_template_id ?: null,
+        ]);
+
+        session()->flash('success', 'Plantillas actualizadas correctamente.');
+    }
+
     public function delete(): void
     {
         $this->file->delete();
@@ -318,11 +341,20 @@ class extends Component {
 
         $hasMandatoryPending = $summary['mandatory_pending'] > 0;
 
+        // Plantillas disponibles por tipo de documento
+        $templateRepo = app(PdfTemplateRepository::class);
+        $modeloExTemplates = $templateRepo->getActiveByType(PdfTemplateType::MODELO_EX);
+        $contratoTemplates = $templateRepo->getActiveByType(PdfTemplateType::CONTRATO);
+        $memoriaTemplates = $templateRepo->getActiveByType(PdfTemplateType::MEMORIA);
+
         return [
             'availableTransitions' => $availableTransitions,
             'reqsByEntity' => $reqsByEntity,
             'summary' => $summary,
             'hasMandatoryPending' => $hasMandatoryPending,
+            'modeloExTemplates' => $modeloExTemplates,
+            'contratoTemplates' => $contratoTemplates,
+            'memoriaTemplates' => $memoriaTemplates,
         ];
     }
 }; ?>
@@ -618,6 +650,17 @@ class extends Component {
                         <div class="col-md-6">
                             <label class="form-label small text-muted mb-0">Puesto de Trabajo</label>
                             <p class="mb-2 fw-semibold">{{ $file->job_title }}</p>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small text-muted mb-0">Codigo CNO SEPE</label>
+                            <p class="mb-2">
+                                @if($file->cnoCode)
+                                    <span class="badge bg-secondary">{{ $file->cnoCode->code }}</span>
+                                    {{ $file->cnoCode->description }}
+                                @else
+                                    <span class="text-muted">-</span>
+                                @endif
+                            </p>
                         </div>
                         <div class="col-md-6">
                             <label class="form-label small text-muted mb-0">Salario</label>
@@ -1366,6 +1409,49 @@ class extends Component {
                             </div>
                         </div>
                     @endif
+                </div>
+            </div>
+
+            {{-- Plantillas de Documentos --}}
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h6 class="m-0">
+                        <i class="bi bi-file-earmark-pdf me-2"></i>
+                        Plantillas de Documentos
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label class="form-label small text-muted mb-1">Modelo EX</label>
+                        <select wire:model="modelo_ex_template_id" class="form-select form-select-sm">
+                            <option value="">Predeterminada del sistema</option>
+                            @foreach($modeloExTemplates as $tpl)
+                                <option value="{{ $tpl->id }}">{{ $tpl->name }}@if($tpl->is_default) (predeterminada)@endif</option>
+                            @endforeach
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small text-muted mb-1">Contrato</label>
+                        <select wire:model="contrato_template_id" class="form-select form-select-sm">
+                            <option value="">Predeterminada del sistema</option>
+                            @foreach($contratoTemplates as $tpl)
+                                <option value="{{ $tpl->id }}">{{ $tpl->name }}@if($tpl->is_default) (predeterminada)@endif</option>
+                            @endforeach
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small text-muted mb-1">Memoria Justificativa</label>
+                        <select wire:model="memoria_template_id" class="form-select form-select-sm">
+                            <option value="">Predeterminada del sistema</option>
+                            @foreach($memoriaTemplates as $tpl)
+                                <option value="{{ $tpl->id }}">{{ $tpl->name }}@if($tpl->is_default) (predeterminada)@endif</option>
+                            @endforeach
+                        </select>
+                    </div>
+                    <button wire:click="saveTemplateSelection" class="btn btn-sm btn-outline-primary w-100">
+                        <i class="bi bi-check-lg me-1"></i>
+                        Guardar seleccion
+                    </button>
                 </div>
             </div>
 

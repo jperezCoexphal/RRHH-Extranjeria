@@ -31,7 +31,7 @@ class DocumentController extends Controller
             );
 
             // Crear ZIP en memoria
-            $zipFileName = "expediente_{$result['file_code']}_" . now()->format('Ymd_His') . '.zip';
+            $zipFileName = $result['file_title'] . '.zip';
             $tempZipPath = sys_get_temp_dir() . '/' . $zipFileName;
 
             $zip = new ZipArchive();

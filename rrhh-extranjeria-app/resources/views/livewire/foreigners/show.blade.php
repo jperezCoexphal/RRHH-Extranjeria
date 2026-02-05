@@ -97,6 +97,16 @@ new #[Layout('layouts.app')] #[Title('Detalle Extranjero - RRHH Extranjeria')] c
                             <p class="mb-2">{{ $foreigner->marital_status->value }}</p>
                         </div>
                         <div class="col-md-4">
+                            <label class="form-label small text-muted mb-0">Tiene Hijos</label>
+                            <p class="mb-2">
+                                @if($foreigner->has_children)
+                                    <span class="badge bg-success"><i class="bi bi-check-lg me-1"></i>Si</span>
+                                @else
+                                    <span class="badge bg-secondary">No</span>
+                                @endif
+                            </p>
+                        </div>
+                        <div class="col-md-4">
                             <label class="form-label small text-muted mb-0">Nacionalidad</label>
                             <p class="mb-2"><span
                                     class="badge bg-primary">{{ $foreigner->nationality?->country_name ?? '-' }}</span>

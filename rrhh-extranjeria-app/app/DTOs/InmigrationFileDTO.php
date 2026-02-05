@@ -25,6 +25,10 @@ class InmigrationFileDTO
         public readonly ?WorkingDayType $working_day_type = null,
         public readonly ?float $working_hours = null,
         public readonly ?int $probation_period = null,
+        public readonly ?int $cno_code_id = null,
+        public readonly ?int $modelo_ex_template_id = null,
+        public readonly ?int $contrato_template_id = null,
+        public readonly ?int $memoria_template_id = null,
         public readonly ?int $id = null,
     ) {}
 
@@ -48,6 +52,10 @@ class InmigrationFileDTO
                 : null,
             working_hours: isset($data['working_hours']) ? (float) $data['working_hours'] : null,
             probation_period: isset($data['probation_period']) ? (int) $data['probation_period'] : null,
+            cno_code_id: isset($data['cno_code_id']) ? (int) $data['cno_code_id'] : null,
+            modelo_ex_template_id: isset($data['modelo_ex_template_id']) ? (int) $data['modelo_ex_template_id'] : null,
+            contrato_template_id: isset($data['contrato_template_id']) ? (int) $data['contrato_template_id'] : null,
+            memoria_template_id: isset($data['memoria_template_id']) ? (int) $data['memoria_template_id'] : null,
             id: $data['id'] ?? null,
         );
     }
@@ -67,9 +75,13 @@ class InmigrationFileDTO
             'working_day_type' => $this->working_day_type?->value,
             'working_hours' => $this->working_hours,
             'probation_period' => $this->probation_period,
+            'cno_code_id' => $this->cno_code_id,
             'employer_id' => $this->employer_id,
             'foreigner_id' => $this->foreigner_id,
             'editor_id' => $this->editor_id,
+            'modelo_ex_template_id' => $this->modelo_ex_template_id,
+            'contrato_template_id' => $this->contrato_template_id,
+            'memoria_template_id' => $this->memoria_template_id,
         ];
     }
 }

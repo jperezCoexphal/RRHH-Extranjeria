@@ -35,8 +35,12 @@ class UpdateInmigrationFileRequest extends FormRequest
             'working_day_type' => ['nullable', Rule::enum(WorkingDayType::class)],
             'working_hours' => ['nullable', 'numeric', 'min:0', 'max:60'],
             'probation_period' => ['nullable', 'integer', 'min:0', 'max:365'],
+            'cno_code_id' => ['nullable', 'integer', 'exists:cno_codes,id'],
             'employer_id' => ['sometimes', 'integer', 'exists:employers,id'],
             'foreigner_id' => ['sometimes', 'integer', 'exists:foreigners,id'],
+            'modelo_ex_template_id' => ['nullable', 'integer', 'exists:pdf_templates,id'],
+            'contrato_template_id' => ['nullable', 'integer', 'exists:pdf_templates,id'],
+            'memoria_template_id' => ['nullable', 'integer', 'exists:pdf_templates,id'],
         ];
     }
 
